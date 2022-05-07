@@ -15,15 +15,18 @@ type Logger struct {
 	logPath string
 }
 
-func (l *Logger) Initlogger() {
-	logPath := l.logPath
-	if !Exists(logPath) {
-		file, err := os.Create(logPath)
+// Initlogger 初始化日志类工具，p代表主日志保存路径
+func Initlogger(p, n string) *Logger {
+	l := new(Logger)
+	l.SetPath(p)
+	if !Exists(l.logPath) {
+		err := os.MkdirAll(l.logPath, 755)
+		file, err := os.Create(p + n)
 		defer file.Close()
 		if err != nil {
 			fmt.Println(err.Error())
 			fmt.Println("mkdir logPath err!")
-			return
+			panic("exit")
 		}
 	}
 	encoder := initEncoder()
@@ -38,7 +41,7 @@ func (l *Logger) Initlogger() {
 
 	// 获取 info、warn日志文件的io.Writer
 	//infoIoWriter := getWriter("D:/bian/logs/dspcollect.log")
-	warnIoWriter := getWriter(l.logPath)
+	warnIoWriter := getWriter(l.logPath + n)
 
 	// 创建Logger
 	core := zapcore.NewTee(
@@ -47,7 +50,8 @@ func (l *Logger) Initlogger() {
 	)
 	logger := zap.New(core, zap.AddCaller()) // 需要传入 zap.AddCaller() 才会显示打日志点的文件名和行数
 	l.logger = *logger
-	l.logger.Info("日志记录启动")
+	l.logger.Info("日志记录工具启动")
+	return l
 }
 
 func (l *Logger) Info(a string) {
@@ -112,6 +116,6 @@ func getWriter(filename string) io.Writer {
 }
 
 // 	配置日志位置
-func (l *Logger) InitPath(s string) {
+func (l *Logger) SetPath(s string) {
 	l.logPath = s
 }

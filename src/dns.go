@@ -68,7 +68,7 @@ func serveDNS(u *net.UDPConn, clientAddr *net.UDPAddr, request *layers.DNS) int 
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("不存在对应记录")
+		logger.Warn("不存在对应记录")
 		u.WriteTo(buf.Bytes(), clientAddr)
 		return 1
 	}
