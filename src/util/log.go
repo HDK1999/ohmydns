@@ -55,7 +55,7 @@ func Initlogger(path string) {
 
 	// 获取 info、warn日志文件的io.Writer
 	//infoIoWriter := getWriter("D:/bian/logs/dspcollect.log")
-	warnIoWriter := getWriter(l.logPath + n)
+	warnIoWriter := getWriter(path)
 
 	// 创建Logger
 	core := zapcore.NewTee(
@@ -81,6 +81,7 @@ func Error(a string) {
 
 func Warn(a string) {
 	defer l.logger.Sync()
+	fmt.Println("Warn:" + a)
 	l.logger.Warn("Warn:" + a)
 }
 
