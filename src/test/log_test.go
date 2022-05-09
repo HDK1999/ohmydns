@@ -8,10 +8,9 @@ import (
 )
 
 func TestLogger(t *testing.T) {
-	logger := new(util.Logger)
-	logger.InitPath("../log/main.log")
-	logger.Initlogger()
-	logger.Info("test1")
-	logger.Error("test2")
-	logger.Warn("test3")
+	util.Initlogger("../log/main.log")
+	//logger.InitPath("../log/main.log")
+	//logger.Initlogger()
+	util.Info("test")
+	util.Warn("kaajajajaja")
 }

@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -15,13 +16,26 @@ type Logger struct {
 	logPath string
 }
 
-// Initlogger 初始化日志类工具，p代表主日志保存路径
-func Initlogger(p, n string) *Logger {
-	l := new(Logger)
+var l *Logger
+
+// Initlogger 初始化日志类工具，path代表主日志保存路径
+func Initlogger(path string) {
+	n := path
+	var p string
+	s := strings.Split(n, "/")
+	for i := range s {
+		if i != len(s)-1 {
+			p = p + s[i] + "/"
+			continue
+		}
+		p = p + "/"
+		break
+	}
+	l = new(Logger)
 	l.SetPath(p)
 	if !Exists(l.logPath) {
 		err := os.MkdirAll(l.logPath, 755)
-		file, err := os.Create(p + n)
+		file, err := os.Create(path)
 		defer file.Close()
 		if err != nil {
 			fmt.Println(err.Error())
@@ -51,22 +65,23 @@ func Initlogger(p, n string) *Logger {
 	logger := zap.New(core, zap.AddCaller()) // 需要传入 zap.AddCaller() 才会显示打日志点的文件名和行数
 	l.logger = *logger
 	l.logger.Info("日志记录工具启动")
-	return l
 }
 
-func (l *Logger) Info(a string) {
+func Info(a string) {
 	defer l.logger.Sync()
+	fmt.Println("Info:" + a)
 	l.logger.Info(a)
 }
 
-func (l *Logger) Error(a string) {
+func Error(a string) {
 	defer l.logger.Sync()
+	fmt.Println("Error:" + a)
 	l.logger.Error(a)
 }
 
-func (l *Logger) Warn(a string) {
+func Warn(a string) {
 	defer l.logger.Sync()
-	l.logger.Warn(a)
+	l.logger.Warn("Warn:" + a)
 }
 
 //初始化Encoder
