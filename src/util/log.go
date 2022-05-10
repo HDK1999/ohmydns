@@ -34,7 +34,7 @@ func Initlogger(path string) {
 	l = new(Logger)
 	l.SetPath(p)
 	if !Exists(l.logPath) {
-		err := os.MkdirAll(l.logPath, 755)
+		err := os.MkdirAll(l.logPath, 777)
 		file, err := os.Create(path)
 		defer file.Close()
 		if err != nil {
