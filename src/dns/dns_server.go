@@ -21,7 +21,7 @@ type RR util.RR
 type DNSdata struct {
 	// 请求域名
 	Name string
-	// 请求类型
+	// 匹配的记录类型
 	Type string
 	// 请求响应
 	rep *layers.DNS
@@ -38,8 +38,10 @@ var records = map[string]RR{
 	"baidu.com":  {"223.34.34.34", "A"},
 	"github.com": {"79.52.123.201", "A"},
 
-	"*.v4.testv4-v6.live": {"v6.testv4-v6.live -i -r", "CNAME"},
-	"*.v6.testv4-v6.live": {"v4.testv4-v6.live -i -r", "CNAME"},
+	"*.v4.testv4-v6.live": {".v4.>>.v6. -i -r", "CNAME"},
+	"*.v6.testv4-v6.live": {".v6.>>.v4. -i -r", "CNAME"},
+
+	"last.*.testv4-v6.live": {"fe80::bcc0:e4ff:fe5f:9fa4", "AAAA"},
 	//"*.v4.testv4-v6.live": {"v6.testv4-v6.live -i -r", "CNAME"},
 	//"*.v6.testv4-v6.live": {"v4.testv4-v6.live -i -r", "CNAME"},
 }
@@ -186,7 +188,6 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 		cAddr: clientAddr,
 		u:     u,
 	}
-	util.Warn(dnsdata.Type)
 	h, _ := mux.Handler(dnsdata.Type)
 	h.ServeDNS(dnsdata)
 }

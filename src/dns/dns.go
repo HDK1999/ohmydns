@@ -6,7 +6,6 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"net"
-	"ohmydns/src/util"
 	"strings"
 )
 
@@ -14,37 +13,13 @@ import (
 const turn = 2
 
 // CNAME 链长度
-const len = 2 * turn
+const Len = 2 * turn
 
 // dns应答
 var dnsAnswer layers.DNSResourceRecord
 
 var buf = gopacket.NewSerializeBuffer()
 var opts = gopacket.SerializeOptions{} // See SerializeOptions for more details.
-
-// 通过改变子域名表现实验进展位置，完成全部返回"stop"
-func makeprogress(domain string) string {
-	str := []byte(domain)
-	if str[1] < 48+len {
-		str[1] += 1
-		return string(str)
-	}
-	return "stop"
-}
-
-// 构建v4-v6cname所需的域名，最低一级的子域名代表了实验进展的位置
-func Domain46(ip net.IP, domain string) string {
-	if makeprogress(domain) != "stop" {
-		domain = makeprogress(domain)
-	}
-	sub := strings.Split(domain, ".") // 每一级的域名
-	return sub[0] + "." + util.IPembed(ip, domain[3:])
-}
-
-// 根据域名情况动态生成新的域名
-func makedomain(ip net.IP, domain string) string {
-	return Domain46(ip, domain)
-}
 
 //****************************************DNS记录解析
 
@@ -97,13 +72,39 @@ func HandleAAAA(d DNSdata) {
 
 // NS记录请求处理函数
 func HandleNS(sdata DNSdata) {
-
+	//TODO：NS解析
 }
 
 // CNAME记录请求处理函数
 func HandleCN(d DNSdata) {
+	//根据实验需要，检测是否需要转化为AAAA记录返回
+	str := []byte(d.Name)
+	if str[1] >= 48+Len {
+		d.Name = "last.*.testv4-v6.live"
+		d.Type = "AAAA"
+		d.rr = records[d.Name]
+		// TODO:在这里记录关键信息
+		HandleAAAA(d)
+	}
+	//正常解析过程
 	dnsAnswer.Type = layers.DNSTypeCNAME
-	dnsAnswer.CNAME = []byte(makedomain(d.cAddr.IP, d.Name))
+	s := strings.Split(d.rr.Record, " ")
+	cname := s[0]
+	//含有特殊选项
+	if len(s) > 1 {
+		// 默认从第二个开始为选项
+		for _, v := range s {
+			if v == "-i" {
+				cname = HandleIPembed(d.Name, d.cAddr.IP)
+				continue
+			}
+			if v == "-r" {
+				cname = HandleReplacedomain(cname, d.rr.Record)
+				continue
+			}
+		}
+	}
+	dnsAnswer.CNAME = []byte(cname)
 	dnsAnswer.Name = []byte(d.Name)
 	dnsAnswer.Class = layers.DNSClassIN
 
