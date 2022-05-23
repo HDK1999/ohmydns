@@ -2,11 +2,14 @@ package util
 
 import (
 	"flag"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
+	"unsafe"
 )
 
 type RR struct {
@@ -18,7 +21,18 @@ type RR struct {
 type RRarg struct {
 	EmbIP        bool //	将请求的IP嵌入到域名中返回结果，仅适用于CNAME记录
 	ReplaceCNAME bool //	父级域名替换，用于CNAME，例如请求的域名为b.a.com将返回b.c.live，可与-i选项叠加
+	NuminDomain  bool
 }
+
+var src = rand.NewSource(time.Now().UnixNano())
+
+const (
+	// 6 bits to represent a letter index
+	letterIdBits = 6
+	// All 1-bits as many as letterIdBits
+	letterIdMask = 1<<letterIdBits - 1
+	letterIdMax  = 63 / letterIdBits
+)
 
 //将ip嵌入域名中,作为下一级的子域名
 func IPembed(ip net.IP, domain string) string {
@@ -47,6 +61,24 @@ func GetAppPath() string {
 	index := strings.LastIndex(path, string(os.PathSeparator))
 	path = path[:index]
 	return path
+}
+
+// 从l中随机生成长度为n的字符串
+func RandStr(n int, l string) string {
+	b := make([]byte, n)
+	// A rand.Int63() generates 63 random bits, enough for letterIdMax letters!
+	for i, cache, remain := n-1, src.Int63(), letterIdMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = src.Int63(), letterIdMax
+		}
+		if idx := int(cache & letterIdMask); idx < len(l) {
+			b[i] = l[idx]
+			i--
+		}
+		cache >>= letterIdBits
+		remain--
+	}
+	return *(*string)(unsafe.Pointer(&b))
 }
 
 // 定义在记录中客可以使用的参数
