@@ -134,7 +134,7 @@ func HandleCN(d DNSdata) {
 	d.rep.AA = true
 	d.rep.Answers = append(d.rep.Answers, dnsAnswer)
 	d.rep.ResponseCode = layers.DNSResponseCodeNoErr
-	aInfo, ns := AuthInfo(d.rr.Record)
+	aInfo, ns := AuthInfo(d.Name)
 	d.rep.Authorities = append(d.rep.Authorities, aInfo)
 	d.rep.Additionals = append(d.rep.Additionals, AdditionalInfo(ns))
 
@@ -152,7 +152,6 @@ func AuthInfo(s string) (layers.DNSResourceRecord, string) {
 	dnsserver.Type = layers.DNSTypeNS
 	// 根据不同的子域名
 	if strings.Contains(s, ".v6.") {
-		fmt.Println("v6v6v6v6v")
 		dnsserver.NS = []byte("ns6.testv4-v6.live")
 		ns = "ns6.testv4-v6.live"
 		dnsserver.Name = []byte("v6.testv4-v6.live")
