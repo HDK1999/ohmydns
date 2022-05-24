@@ -2,14 +2,14 @@ package util
 
 import (
 	"flag"
-	"math/rand"
+	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 )
 
 type RR struct {
@@ -21,18 +21,23 @@ type RR struct {
 type RRarg struct {
 	EmbIP        bool //	将请求的IP嵌入到域名中返回结果，仅适用于CNAME记录
 	ReplaceCNAME bool //	父级域名替换，用于CNAME，例如请求的域名为b.a.com将返回b.c.live，可与-i选项叠加
-	NuminDomain  bool
 }
 
-var src = rand.NewSource(time.Now().UnixNano())
+// 实验所需记录的存储结构体
+type ResolverLog struct {
+	ChangeFlag map[string]bool
+	Logmap     map[string]mapset.Set
+}
 
-const (
-	// 6 bits to represent a letter index
-	letterIdBits = 6
-	// All 1-bits as many as letterIdBits
-	letterIdMask = 1<<letterIdBits - 1
-	letterIdMax  = 63 / letterIdBits
-)
+// 不需要随机化，弃用
+//var src = rand.NewSource(time.Now().UnixNano())
+//const (
+//	// 6 bits to represent a letter index
+//	letterIdBits = 6
+//	// All 1-bits as many as letterIdBits
+//	letterIdMask = 1<<letterIdBits - 1
+//	letterIdMax  = 63 / letterIdBits
+//)
 
 //将ip嵌入域名中,作为下一级的子域名
 func IPembed(ip net.IP, domain string) string {
@@ -74,6 +79,62 @@ func GetAppPath() string {
 	index := strings.LastIndex(path, string(os.PathSeparator))
 	path = path[:index]
 	return path
+}
+
+func NewResolverLog() *ResolverLog {
+	r := new(ResolverLog)
+	r.Logmap = make(map[string]mapset.Set)
+	return r
+}
+
+// 添加解析器请求记录，n——实验编号，l——对应日志
+func (r ResolverLog) Add(n, l string) {
+	// 搜寻是否存在对应记录
+	s, ok := r.Logmap[n]
+	// 不存在对应记录就新建
+	if !ok {
+		// 记录所有对应的实验编号的交互
+		set := mapset.NewSet()
+		set.Add(l)
+		r.Logmap[n] = set
+		r.ChangeFlag[n] = true
+		return
+	}
+	//存在对应记录就加入记录
+	//判断新增日志是否是全新的
+	r.ChangeFlag[n] = r.IfChange(s, l)
+	s.Add(l)
+	return
+}
+
+// 判断加入的日志是否会使原日志发生变化
+func (r ResolverLog) IfChange(s mapset.Set, l string) bool {
+	oldS := s
+	newS := s
+	newS.Add(l)
+	return oldS.Equal(newS)
+}
+
+// 将对应记录集合转为字符串，格式为[str1,str2...]
+func (r ResolverLog) NumLog2Str(n string) (string, bool) {
+	// 搜寻是否存在对应记录
+	s, ok := r.Logmap[n]
+	if !ok {
+		Warn("不存在对应的实验编号")
+		return "实验编号不存在", ok
+	}
+	// 存在记录，遍历集合重新格式化
+	c := s.Iter()
+	str := "[" + fmt.Sprint(<-c)
+	for {
+		if b, ok := <-c; ok {
+			str = str + "," + fmt.Sprint(b)
+		} else {
+			str = str + "]"
+			break
+		}
+	}
+	return str, !ok
 }
 
 // 从l中随机生成长度为n的字符串
