@@ -135,8 +135,8 @@ func HandleCN(d DNSdata) {
 	d.rep.Answers = append(d.rep.Answers, dnsAnswer)
 	d.rep.ResponseCode = layers.DNSResponseCodeNoErr
 	aInfo, ns := AuthInfo(d.rr.Record)
-	d.rep.Authorities = append(d.rep.Authorities, *aInfo)
-	d.rep.Additionals = append(d.rep.Additionals, *AdditionalInfo(ns))
+	d.rep.Authorities = append(d.rep.Authorities, aInfo)
+	d.rep.Additionals = append(d.rep.Additionals, AdditionalInfo(ns))
 
 	err := d.rep.SerializeTo(buf, opts)
 	if err != nil {
@@ -146,7 +146,7 @@ func HandleCN(d DNSdata) {
 }
 
 // 返回权威服务器的授权信息
-func AuthInfo(s string) (*layers.DNSResourceRecord, string) {
+func AuthInfo(s string) (layers.DNSResourceRecord, string) {
 	dnsserver := new(layers.DNSResourceRecord)
 	var ns string
 	dnsserver.Type = layers.DNSTypeNS
@@ -155,16 +155,17 @@ func AuthInfo(s string) (*layers.DNSResourceRecord, string) {
 		fmt.Println("v6v6v6v6v")
 		dnsserver.NS = []byte("ns6.testv4-v6.live")
 		ns = "ns6.testv4-v6.live"
+		dnsserver.Name = []byte("v6.testv4-v6.live")
 	} else {
 		dnsserver.NS = []byte("ns4.testv4-v6.live")
 		ns = "ns4.testv4-v6.live"
+		dnsserver.Name = []byte("v4.testv4-v6.live")
 	}
 	dnsserver.Class = layers.DNSClassIN
-	dnsserver.Name = []byte(s)
-	return dnsserver, ns
+	return *dnsserver, ns
 }
 
-func AdditionalInfo(s string) *layers.DNSResourceRecord {
+func AdditionalInfo(s string) layers.DNSResourceRecord {
 	dnsadd := new(layers.DNSResourceRecord)
 	// 根据不同的NS返回额外信息
 	if strings.Contains(s, "ns6") {
@@ -179,7 +180,7 @@ func AdditionalInfo(s string) *layers.DNSResourceRecord {
 		dnsadd.Class = layers.DNSClassIN
 	}
 	dnsadd.Name = []byte(s)
-	return dnsadd
+	return *dnsadd
 }
 
 // 解析器跟踪
