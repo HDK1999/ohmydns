@@ -19,6 +19,23 @@ func TestIPembed(t *testing.T) {
 	fmt.Println(newdomain6)
 }
 
+func TestGetNum(t *testing.T) {
+	domain := "c4.--1.127-0-0-1.rip2003-8fac--5fa-1.v6.testv4-v6.live"
+	str := util.GetNum(domain)
+	fmt.Println(str)
+}
+
+func TestNumLog2Str(t *testing.T) {
+	r := util.NewResolverLog()
+	r.Add("127-0-0-1", "c1.v4.testv4-v6.live|A")
+	r.Add("127-0-0-1", "c1.v6.testv4-v6.live|AAAA")
+
+	str, err := r.NumLog2Str("127-0-0-1")
+	if !err {
+		fmt.Println(str)
+	}
+}
+
 //func TestMakeprogress(t *testing.T) {
 //	domain := "c4.testv4-v6.live"
 //	fmt.Println(util.Makeprogress(domain))

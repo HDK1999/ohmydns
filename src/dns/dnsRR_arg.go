@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+const substr = "0123456789abcdefghijklmnopqrstuvwxyz"
+const numlen = 6
+
 // 通过改变子域名表现实验进展位置
 // 处理的域名均不是最后一步的域名
 // 因为会在对域名进行预解析时拦截全部无需处理的实验用请求

@@ -10,6 +10,6 @@ import (
 func TestDNSServeMux(t *testing.T) {
 	//dnsmux := dns.NewDNSServeMux()
 	//test_rr := new(util.RR)
-	//test_rr.Type = "AAAA"
-	//dnsmux.ServeDNS(test_rr.Type)
+	//test_rr.RType = "AAAA"
+	//dnsmux.ServeDNS(test_rr.RType)
 }
