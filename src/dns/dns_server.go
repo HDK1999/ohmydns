@@ -21,7 +21,9 @@ type DNSdata struct {
 	// 请求域名
 	Name string
 	// 匹配的记录类型
-	Type string
+	RType string
+	// 请求的类型
+	QType int
 	// 请求响应
 	rep *layers.DNS
 	// 对应解析记录
@@ -43,8 +45,8 @@ var records = map[string]RR{
 	"lastdomain.testv4-v6.live": {"fe80::bcc0:e4ff:fe5f:9fa4", "AAAA"},
 }
 
-// 默认的DNS处理路由
-var DefaultDNSSM DNSServeMux
+//// 默认的DNS处理路由
+//var DefaultDNSSM DNSServeMux
 
 // DNS处理路由结构体(A、CNAME...)
 type DNSServeMux struct {
@@ -168,7 +170,7 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 			break
 		}
 	}
-
+	// TODO:对于请求类型是否匹配的判断
 	if !ok {
 		//不存在对应记录
 		err := request.SerializeTo(buf, opts)
@@ -183,13 +185,14 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 	dnsdata := DNSdata{
 		// 默认认为只有一个查询域名
 		Name:  string(request.Questions[0].Name),
-		Type:  rr.Type,
+		QType: int(request.Questions[0].Type),
+		RType: rr.Type,
 		rep:   request,
 		rr:    rr,
 		cAddr: clientAddr,
 		u:     u,
 	}
-	h, _ := mux.Handler(dnsdata.Type)
+	h, _ := mux.Handler(dnsdata.RType)
 	h.ServeDNS(dnsdata)
 	return 0
 }

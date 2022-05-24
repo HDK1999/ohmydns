@@ -29,6 +29,8 @@ type ResolverLog struct {
 	Logmap     map[string]mapset.Set
 }
 
+var RLog *ResolverLog
+
 // 不需要随机化，弃用
 //var src = rand.NewSource(time.Now().UnixNano())
 //const (
@@ -81,10 +83,10 @@ func GetAppPath() string {
 	return path
 }
 
-func NewResolverLog() *ResolverLog {
-	r := new(ResolverLog)
-	r.Logmap = make(map[string]mapset.Set)
-	return r
+func NewResolverLog() {
+	RLog = new(ResolverLog)
+	RLog.Logmap = make(map[string]mapset.Set)
+	RLog.ChangeFlag = make(map[string]bool)
 }
 
 // 添加解析器请求记录，n——实验编号，l——对应日志

@@ -14,6 +14,8 @@ import (
 func main() {
 	// 初始化日志工具
 	util.Initlogger("./log/main.log")
+	// 初始化实验记录缓冲区
+	util.NewResolverLog()
 
 	//Listen on UDP Port at ipv4&ipv6
 	Serveaddr := net.UDPAddr{

@@ -36,7 +36,12 @@ func Initlogger(path string) {
 	if !Exists(l.logPath) {
 		err := os.MkdirAll(l.logPath, 777)
 		file, err := os.Create(path)
-		defer file.Close()
+		defer func(file *os.File) {
+			err := file.Close()
+			if err != nil {
+
+			}
+		}(file)
 		if err != nil {
 			fmt.Println(err.Error())
 			fmt.Println("mkdir logPath err!")
@@ -45,22 +50,37 @@ func Initlogger(path string) {
 	}
 	encoder := initEncoder()
 
-	// 想要将日常文件区分开来，可以实现多个日志等级接口
-	/*infoLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl < zapcore.WarnLevel
-	})*/
+	// 实现多个日志等级接口,将不同的信息分隔开
+	// Info:系统正常的工作日志
+	// Debug:与实验相关的日志记录
+	// Warn:系统工作异常日志（例如：无对应解析记录）
+	// Error:错误日志，导致系统最终退出
+	infoLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl == zapcore.InfoLevel
+	})
 	debugLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= zapcore.DebugLevel
+		return lvl == zapcore.DebugLevel
+	})
+	warnLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl == zapcore.WarnLevel
+	})
+	errorLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl == zapcore.ErrorLevel
 	})
 
 	// 获取 info、warn日志文件的io.Writer
-	//infoIoWriter := getWriter("D:/bian/logs/dspcollect.log")
-	warnIoWriter := getWriter(path)
+	infoIoWriter := getWriter(path, "INFO")
+	warnIoWriter := getWriter(path, "WARN")
+	debugIoWriter := getWriter(path, "DEBUG")
+	errorIoWriter := getWriter(path, "ERROR")
 
 	// 创建Logger
 	core := zapcore.NewTee(
 		//zapcore.NewCore(encoder, zapcore.AddSync(infoIoWriter), infoLevel),
-		zapcore.NewCore(encoder, zapcore.AddSync(warnIoWriter), debugLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(warnIoWriter), warnLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(infoIoWriter), infoLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(debugIoWriter), debugLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(errorIoWriter), errorLevel),
 	)
 	logger := zap.New(core, zap.AddCaller()) // 需要传入 zap.AddCaller() 才会显示打日志点的文件名和行数
 	l.logger = *logger
@@ -83,6 +103,12 @@ func Warn(a string) {
 	defer l.logger.Sync()
 	fmt.Println("Warn:" + a)
 	l.logger.Warn("Warn:" + a)
+}
+
+func Debug(a string) {
+	defer l.logger.Sync()
+	fmt.Println(a)
+	l.logger.Debug(a)
 }
 
 //初始化Encoder
@@ -116,13 +142,13 @@ func Exists(path string) bool {
 }
 
 //日志文件切割
-func getWriter(filename string) io.Writer {
-	// 保存30天内的日志，每12小时(整点)分割一次日志
+func getWriter(filename, lvl string) io.Writer {
+	// 保存30天内的日志，每24小时(整点)分割一次日志
 	hook, err := rotatelogs.New(
-		filename[:len(filename)-4]+"-%Y%m%d%H.log",
+		filename[:len(filename)-4]+"--"+lvl+"-"+"-%Y%m%d%H.log",
 		rotatelogs.WithLinkName(filename),
 		rotatelogs.WithMaxAge(time.Hour*24*30),
-		rotatelogs.WithRotationTime(time.Hour*12),
+		rotatelogs.WithRotationTime(time.Hour*24),
 	)
 
 	if err != nil {
