@@ -25,7 +25,7 @@ const Len = 2 * turn
 // dns应答
 var dnsAnswer layers.DNSResourceRecord
 var buf = gopacket.NewSerializeBuffer()
-var opts = gopacket.SerializeOptions{} // See SerializeOptions for more details.
+var opts = gopacket.SerializeOptions{FixLengths: true} // See SerializeOptions for more details.
 
 //****************************************DNS记录解析
 
@@ -40,7 +40,7 @@ func HandleA(d DNSdata) {
 	// 返回消息填充
 	d.rep.QR = true
 	d.rep.ANCount = 1
-	d.rep.OpCode = layers.DNSOpCodeNotify
+	d.rep.OpCode = layers.DNSOpCodeQuery
 	d.rep.AA = true
 	d.rep.Answers = append(d.rep.Answers, dnsAnswer)
 	d.rep.ResponseCode = layers.DNSResponseCodeNoErr
@@ -64,7 +64,7 @@ func HandleAAAA(d DNSdata) {
 	// 返回消息填充
 	d.rep.QR = true
 	d.rep.ANCount = 1
-	d.rep.OpCode = layers.DNSOpCodeNotify
+	d.rep.OpCode = layers.DNSOpCodeQuery
 	d.rep.AA = true
 	d.rep.Answers = append(d.rep.Answers, dnsAnswer)
 	d.rep.ResponseCode = layers.DNSResponseCodeNoErr
@@ -130,16 +130,56 @@ func HandleCN(d DNSdata) {
 	// 返回消息填充
 	d.rep.QR = true
 	d.rep.ANCount = 1
-	d.rep.OpCode = layers.DNSOpCodeNotify
+	d.rep.OpCode = layers.DNSOpCodeQuery
 	d.rep.AA = true
 	d.rep.Answers = append(d.rep.Answers, dnsAnswer)
 	d.rep.ResponseCode = layers.DNSResponseCodeNoErr
+	aInfo, ns := AuthInfo(d.rr.Record)
+	d.rep.Authorities = append(d.rep.Authorities, *aInfo)
+	d.rep.Additionals = append(d.rep.Additionals, *AdditionalInfo(ns))
 
 	err := d.rep.SerializeTo(buf, opts)
 	if err != nil {
 		panic(err)
 	}
 	d.u.WriteTo(buf.Bytes(), d.cAddr)
+}
+
+// 返回权威服务器的授权信息
+func AuthInfo(s string) (*layers.DNSResourceRecord, string) {
+	dnsserver := new(layers.DNSResourceRecord)
+	var ns string
+	dnsserver.Type = layers.DNSTypeNS
+	// 根据不同的子域名
+	if strings.Contains(s, ".v6.") {
+		fmt.Println("v6v6v6v6v")
+		dnsserver.NS = []byte("ns6.testv4-v6.live")
+		ns = "ns6.testv4-v6.live"
+	} else {
+		dnsserver.NS = []byte("ns4.testv4-v6.live")
+		ns = "ns4.testv4-v6.live"
+	}
+	dnsserver.Class = layers.DNSClassIN
+	dnsserver.Name = []byte(s)
+	return dnsserver, ns
+}
+
+func AdditionalInfo(s string) *layers.DNSResourceRecord {
+	dnsadd := new(layers.DNSResourceRecord)
+	// 根据不同的NS返回额外信息
+	if strings.Contains(s, "ns6") {
+		dnsadd.Type = layers.DNSTypeAAAA
+		a, _, _ := net.ParseCIDR("240c:4081:8002:8910::4" + "/32")
+		dnsadd.IP = a
+		dnsadd.Class = layers.DNSClassIN
+	} else {
+		dnsadd.Type = layers.DNSTypeA
+		a, _, _ := net.ParseCIDR("120.48.25.7" + "/24")
+		dnsadd.IP = a
+		dnsadd.Class = layers.DNSClassIN
+	}
+	dnsadd.Name = []byte(s)
+	return dnsadd
 }
 
 // 解析器跟踪
