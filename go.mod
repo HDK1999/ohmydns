@@ -1,8 +1,9 @@
 module ohmydns
 
-go 1.17
+go 1.18
 
 require (
+	github.com/deckarep/golang-set v1.8.0
 	github.com/google/gopacket v1.1.19
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
 	github.com/miekg/dns v1.1.48
