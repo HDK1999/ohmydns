@@ -111,10 +111,7 @@ func (r ResolverLog) Add(n, l string) {
 
 // 判断加入的日志是否会使原日志发生变化
 func (r ResolverLog) IfChange(s mapset.Set, l string) bool {
-	oldS := s
-	newS := s
-	newS.Add(l)
-	return oldS.Equal(newS)
+	return !s.Contains(l)
 }
 
 // 将对应记录集合转为字符串，格式为[str1,str2...]

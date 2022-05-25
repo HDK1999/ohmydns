@@ -39,8 +39,8 @@ var records = map[string]RR{
 	"baidu.com":  {"223.34.34.34", "A"},
 	"github.com": {"79.52.123.201", "A"},
 
-	"*.v4.testv4-v6.live": {".v4.>>.v6. -i -r -n", "CNAME"},
-	"*.v6.testv4-v6.live": {".v6.>>.v4. -i -r -n", "CNAME"},
+	"*.v4.testv4-v6.live": {".v4.>>.v6. -i -r", "CNAME"},
+	"*.v6.testv4-v6.live": {".v6.>>.v4. -i -r", "CNAME"},
 
 	"lastdomain.testv4-v6.live": {"fe80::bcc0:e4ff:fe5f:9fa4", "AAAA"},
 }
@@ -164,10 +164,14 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 	for k := range records {
 		//泛域名特殊处理，且要保留原有键
 		n := strings.ReplaceAll(k, "*.", "")
-		if dns.IsSubDomain(n, string(request.Questions[0].Name)) {
-			rr, ok = records[k]
-			// TODO：最大前缀匹配
-			break
+		if request.Questions != nil {
+			if dns.IsSubDomain(n, string(request.Questions[0].Name)) {
+				rr, ok = records[k]
+				// TODO：最大前缀匹配
+				break
+			}
+		} else {
+			return 1
 		}
 	}
 	// TODO:对于请求类型是否匹配的判断

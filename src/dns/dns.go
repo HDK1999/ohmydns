@@ -119,6 +119,7 @@ func HandleCN(d DNSdata) {
 			rlog, err := util.RLog.NumLog2Str(n)
 			if !err {
 				go util.Debug(n + "------" + rlog)
+				util.RLog.ChangeFlag[n] = false
 			}
 		}
 
@@ -169,7 +170,7 @@ func AdditionalInfo(s string) layers.DNSResourceRecord {
 	// 根据不同的NS返回额外信息
 	if strings.Contains(s, "ns6") {
 		dnsadd.Type = layers.DNSTypeAAAA
-		a, _, _ := net.ParseCIDR("240c:4081:8002:8910::4" + "/32")
+		a, _, _ := net.ParseCIDR("240c:4081:8002:8910::4" + "/64")
 		dnsadd.IP = a
 		dnsadd.Class = layers.DNSClassIN
 	} else {
