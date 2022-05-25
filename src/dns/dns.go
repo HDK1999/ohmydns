@@ -50,7 +50,7 @@ func HandleA(d DNSdata) {
 		panic(err)
 	}
 	d.u.WriteTo(buf.Bytes(), d.cAddr)
-
+	buf.Clear()
 }
 
 // AAAA记录处理函数
@@ -74,6 +74,7 @@ func HandleAAAA(d DNSdata) {
 		panic(err)
 	}
 	d.u.WriteTo(buf.Bytes(), d.cAddr)
+	buf.Clear()
 }
 
 // NS记录处理函数
@@ -144,6 +145,7 @@ func HandleCN(d DNSdata) {
 		panic(err)
 	}
 	d.u.WriteTo(buf.Bytes(), d.cAddr)
+	buf.Clear()
 }
 
 // 返回权威服务器的授权信息
