@@ -124,7 +124,7 @@ func HandleCN(d DNSdata) {
 			}
 		}
 		// 记录所有请求的源IP
-		util.IpLog.Add(n, "172.168.0.1")
+		util.IpLog.Add(n, d.cAddr.IP.String())
 		iplog, err := util.IpLog.Log2Str(n)
 		if !err {
 			go util.Debug("IP" + n + "------" + iplog)
