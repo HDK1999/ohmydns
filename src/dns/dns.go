@@ -123,7 +123,12 @@ func HandleCN(d DNSdata) {
 				util.RLog.ChangeFlag[n] = false
 			}
 		}
-
+		// 记录所有请求的源IP
+		util.IpLog.Add(n, "172.168.0.1")
+		iplog, err := util.IpLog.Log2Str(n)
+		if !err {
+			go util.Debug("IP" + n + "------" + iplog)
+		}
 	}
 	dnsAnswer.CNAME = []byte(cname)
 	dnsAnswer.Name = []byte(d.Name)

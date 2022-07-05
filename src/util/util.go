@@ -1,6 +1,7 @@
 package util
 
 import (
+	"container/list"
 	"flag"
 	"fmt"
 	mapset "github.com/deckarep/golang-set"
@@ -23,23 +24,20 @@ type RRarg struct {
 	ReplaceCNAME bool //	父级域名替换，用于CNAME，例如请求的域名为b.a.com将返回b.c.live，可与-i选项叠加
 }
 
-// 实验所需记录的存储结构体
+// 实验所需记录请求日志的存储结构体
 type ResolverLog struct {
 	ChangeFlag map[string]bool
 	Logmap     map[string]mapset.Set
 }
 
-var RLog *ResolverLog
+// 请求源IP的记录结构体
+type IPLog struct {
+	ChangeFlag map[string]bool
+	Logmap     map[string]list.List
+}
 
-// 不需要随机化，弃用
-//var src = rand.NewSource(time.Now().UnixNano())
-//const (
-//	// 6 bits to represent a letter index
-//	letterIdBits = 6
-//	// All 1-bits as many as letterIdBits
-//	letterIdMask = 1<<letterIdBits - 1
-//	letterIdMax  = 63 / letterIdBits
-//)
+var RLog *ResolverLog
+var IpLog *IPLog
 
 //将ip嵌入域名中,作为下一级的子域名
 func IPembed(ip net.IP, domain string) string {
@@ -88,6 +86,11 @@ func NewResolverLog() {
 	RLog.Logmap = make(map[string]mapset.Set)
 	RLog.ChangeFlag = make(map[string]bool)
 }
+func NewIPLog() {
+	IpLog = new(IPLog)
+	IpLog.Logmap = make(map[string]list.List)
+	IpLog.ChangeFlag = make(map[string]bool)
+}
 
 // 添加解析器请求记录，n——实验编号，l——对应日志
 func (r ResolverLog) Add(n, l string) {
@@ -106,6 +109,25 @@ func (r ResolverLog) Add(n, l string) {
 	//判断新增日志是否是全新的
 	r.ChangeFlag[n] = r.IfChange(s, l)
 	s.Add(l)
+	return
+}
+
+// 添加请求源IP的记录，n——实验编号，ip——源IP
+func (i IPLog) Add(n, ip string) {
+	// 搜寻是否存在对应记录
+	s, ok := i.Logmap[n]
+	// 不存在对应记录就新建
+	if !ok {
+		// 记录所有对应的实验编号的交互
+		log := list.New()
+		log.PushBack(ip)
+		i.Logmap[n] = *log
+		//i.ChangeFlag[n] = true
+		return
+	}
+	//存在对应记录就加入记录
+	//i.ChangeFlag[n] = true
+	s.PushBack(ip)
 	return
 }
 
@@ -136,6 +158,24 @@ func (r ResolverLog) NumLog2Str(n string) (string, bool) {
 	return str, !ok
 }
 
+//将对应IP记录集合转为字符串，格式为[str1,str2...]
+func (i IPLog) Log2Str(n string) (string, bool) {
+	// 搜寻是否存在对应记录
+	s, ok := i.Logmap[n]
+	if !ok {
+		Warn("不存在对应的实验编号")
+		return "实验编号不存在", ok
+	}
+	// 存在记录，遍历集合重新格式化
+	str := "["
+	for i := s.Front(); i.Next() != nil; i = i.Next() {
+		str = str + fmt.Sprint(i.Next().Value) + ","
+	}
+
+	str = str + fmt.Sprint(s.Back().Value) + "]"
+	return str, !ok
+}
+
 // 从l中随机生成长度为n的字符串
 // 该功能已弃用
 //func RandStr(n int, l string) string {
@@ -155,7 +195,7 @@ func (r ResolverLog) NumLog2Str(n string) (string, bool) {
 //	return *(*string)(unsafe.Pointer(&b))
 //}
 
-// 定义在记录中客可以使用的参数
+// 定义在记录中可以使用的参数
 //TODO:完善
 func InitRRarg() {
 	_ = flag.Bool("i", false, "将请求的IP嵌入到域名中返回结果，仅适用于CNAME记录")

@@ -16,10 +16,12 @@ func main() {
 	util.Initlogger("./log/main.log")
 	// 初始化实验记录缓冲区
 	util.NewResolverLog()
+	// 初始化IP记录缓冲区
+	util.NewIPLog()
 
 	//Listen on UDP Port at ipv4&ipv6
 	Serveaddr := net.UDPAddr{
-		Port: 53,
+		Port: 1153,
 		IP:   net.ParseIP("localhost"),
 	}
 	//ipv4和ipv6解析
