@@ -165,7 +165,7 @@ func (r ResolverLog) NumLog2Str(n string) (string, bool) {
 	//}
 	str := "["
 	for i := s.Front(); i.Next() != nil; i = i.Next() {
-		str = str + fmt.Sprint(i.Next().Value) + ","
+		str = str + fmt.Sprint(i.Value) + ","
 	}
 	str = str + fmt.Sprint(s.Back().Value) + "]"
 	return str, !ok
