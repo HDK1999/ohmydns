@@ -26,18 +26,21 @@ type RRarg struct {
 
 // 实验所需记录请求日志的存储结构体
 type ResolverLog struct {
-	ChangeFlag map[string]bool
-	Logmap     map[string]mapset.Set
+	//只要经过修改就输出
+	//ChangeFlag map[string]bool
+	Logmap map[string]list.List
+	//Logmap     map[string]mapset.Set
 }
 
-// 请求源IP的记录结构体
-type IPLog struct {
-	ChangeFlag map[string]bool
-	Logmap     map[string]list.List
-}
+// 请求源IP的记录结构体，已废弃
+//type IPLog struct {
+//	ChangeFlag map[string]bool
+//	Logmap     map[string]list.List
+//}
 
 var RLog *ResolverLog
-var IpLog *IPLog
+
+//var IpLog *IPLog
 
 //将ip嵌入域名中,作为下一级的子域名
 func IPembed(ip net.IP, domain string) string {
@@ -83,14 +86,16 @@ func GetAppPath() string {
 
 func NewResolverLog() {
 	RLog = new(ResolverLog)
-	RLog.Logmap = make(map[string]mapset.Set)
-	RLog.ChangeFlag = make(map[string]bool)
+	RLog.Logmap = make(map[string]list.List)
+	//RLog.ChangeFlag = make(map[string]bool)
 }
-func NewIPLog() {
-	IpLog = new(IPLog)
-	IpLog.Logmap = make(map[string]list.List)
-	IpLog.ChangeFlag = make(map[string]bool)
-}
+
+//原用作IP记录，现废弃
+//func NewIPLog() {
+//	IpLog = new(IPLog)
+//	IpLog.Logmap = make(map[string]list.List)
+//	IpLog.ChangeFlag = make(map[string]bool)
+//}
 
 // 添加解析器请求记录，n——实验编号，l——对应日志
 func (r ResolverLog) Add(n, l string) {
@@ -99,37 +104,40 @@ func (r ResolverLog) Add(n, l string) {
 	// 不存在对应记录就新建
 	if !ok {
 		// 记录所有对应的实验编号的交互
-		set := mapset.NewSet()
-		set.Add(l)
-		r.Logmap[n] = set
-		r.ChangeFlag[n] = true
+		//set := mapset.NewSet() //日志唯一记录
+		//set.Add(l)
+		//r.Logmap[n] = set
+		log := list.New()
+		log.PushBack(l)
+		r.Logmap[n] = *log
+		//r.ChangeFlag[n] = true
 		return
 	}
 	//存在对应记录就加入记录
-	//判断新增日志是否是全新的
-	r.ChangeFlag[n] = r.IfChange(s, l)
-	s.Add(l)
+	//判断新增日志是否是全新的，在以<ip,domain,qtype>存在新记录时输出的场景下使用
+	//r.ChangeFlag[n] = r.IfChange(s, l)
+	s.PushBack(l)
 	return
 }
 
-// 添加请求源IP的记录，n——实验编号，ip——源IP
-func (i IPLog) Add(n, ip string) {
-	// 搜寻是否存在对应记录
-	s, ok := i.Logmap[n]
-	// 不存在对应记录就新建
-	if !ok {
-		// 记录所有对应的实验编号的交互
-		log := list.New()
-		log.PushBack(ip)
-		i.Logmap[n] = *log
-		//i.ChangeFlag[n] = true
-		return
-	}
-	//存在对应记录就加入记录
-	//i.ChangeFlag[n] = true
-	s.PushBack(ip)
-	return
-}
+// 添加请求源IP的记录，n——实验编号，ip——源IP，已跟随IPlog废除
+//func (i IPLog) Add(n, ip string) {
+//	// 搜寻是否存在对应记录
+//	s, ok := i.Logmap[n]
+//	// 不存在对应记录就新建
+//	if !ok {
+//		// 记录所有对应的实验编号的交互
+//		log := list.New()
+//		log.PushBack(ip)
+//		i.Logmap[n] = *log
+//		//i.ChangeFlag[n] = true
+//		return
+//	}
+//	//存在对应记录就加入记录
+//	//i.ChangeFlag[n] = true
+//	s.PushBack(ip)
+//	return
+//}
 
 // 判断加入的日志是否会使原日志发生变化
 func (r ResolverLog) IfChange(s mapset.Set, l string) bool {
@@ -144,37 +152,42 @@ func (r ResolverLog) NumLog2Str(n string) (string, bool) {
 		Warn("不存在对应的实验编号")
 		return "实验编号不存在", ok
 	}
-	// 存在记录，遍历集合重新格式化
-	c := s.Iter()
-	str := "[" + fmt.Sprint(<-c)
-	for {
-		if b, ok := <-c; ok {
-			str = str + "," + fmt.Sprint(b)
-		} else {
-			str = str + "]"
-			break
-		}
-	}
-	return str, !ok
-}
-
-//将对应IP记录集合转为字符串，格式为[str1,str2...]
-func (i IPLog) Log2Str(n string) (string, bool) {
-	// 搜寻是否存在对应记录
-	s, ok := i.Logmap[n]
-	if !ok {
-		Warn("不存在对应的实验编号")
-		return "实验编号不存在", ok
-	}
-	// 存在记录，遍历集合重新格式化
+	// 存在记录，遍历集合重新格式化（当以set为记录底层时，已废除）
+	//c := s.Iter()
+	//str := "[" + fmt.Sprint(<-c)
+	//for {
+	//	if b, ok := <-c; ok {
+	//		str = str + "," + fmt.Sprint(b)
+	//	} else {
+	//		str = str + "]"
+	//		break
+	//	}
+	//}
 	str := "["
 	for i := s.Front(); i.Next() != nil; i = i.Next() {
 		str = str + fmt.Sprint(i.Next().Value) + ","
 	}
-
 	str = str + fmt.Sprint(s.Back().Value) + "]"
 	return str, !ok
 }
+
+//将对应IP记录集合转为字符串，格式为[str1,str2...]，已废除
+//func (i IPLog) Log2Str(n string) (string, bool) {
+//	// 搜寻是否存在对应记录
+//	s, ok := i.Logmap[n]
+//	if !ok {
+//		Warn("不存在对应的实验编号")
+//		return "实验编号不存在", ok
+//	}
+//	// 存在记录，遍历集合重新格式化
+//	str := "["
+//	for i := s.Front(); i.Next() != nil; i = i.Next() {
+//		str = str + fmt.Sprint(i.Next().Value) + ","
+//	}
+//
+//	str = str + fmt.Sprint(s.Back().Value) + "]"
+//	return str, !ok
+//}
 
 // 从l中随机生成长度为n的字符串
 // 该功能已弃用

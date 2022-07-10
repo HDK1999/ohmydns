@@ -115,20 +115,24 @@ func HandleCN(d DNSdata) {
 		// 将对应的交互信息计入resolverlog中
 		n := util.GetNum(d.Name)
 		util.RLog.Add(n, d.cAddr.IP.String()+"|"+d.Name+"|"+Typecode2str[d.QType])
-		// 记录存在新增数据的时候输出
-		if util.RLog.ChangeFlag[n] {
-			rlog, err := util.RLog.NumLog2Str(n)
-			if !err {
-				go util.Debug(n + "------" + rlog)
-				util.RLog.ChangeFlag[n] = false
-			}
-		}
-		// 记录所有请求的源IP
-		util.IpLog.Add(n, d.cAddr.IP.String())
-		iplog, err := util.IpLog.Log2Str(n)
+		rlog, err := util.RLog.NumLog2Str(n)
 		if !err {
-			go util.Debug("IP" + n + "------" + iplog)
+			go util.Debug(n + "------" + rlog)
 		}
+		// 记录存在新增数据的时候输出
+		//if util.RLog.ChangeFlag[n] {
+		//	rlog, err := util.RLog.NumLog2Str(n)
+		//	if !err {
+		//		go util.Debug(n + "------" + rlog)
+		//		util.RLog.ChangeFlag[n] = false
+		//	}
+		//}
+		// 记录所有请求的源IP,已跟随IPlog结构体一起废除
+		//util.IpLog.Add(n, d.cAddr.IP.String())
+		//iplog, err := util.IpLog.Log2Str(n)
+		//if !err {
+		//	go util.Debug("IP" + n + "------" + iplog)
+		//}
 	}
 	dnsAnswer.CNAME = []byte(cname)
 	dnsAnswer.Name = []byte(d.Name)
