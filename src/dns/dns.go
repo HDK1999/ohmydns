@@ -73,7 +73,7 @@ func HandleAAAA(d DNSdata) {
 	if err != nil {
 		panic(err)
 	}
-	d.u.WriteTo(buf.Bytes(), d.cAddr)
+	//d.u.WriteTo(buf.Bytes(), d.cAddr)
 	buf.Clear()
 }
 
@@ -92,69 +92,69 @@ func HandleCN(d DNSdata) {
 		d.rr = records[dName]
 		// TODO:在这里记录关键信息
 		HandleAAAA(d)
-	}
-
-	//正常解析过程
-	dnsAnswer.Type = layers.DNSTypeCNAME
-	s := strings.Split(d.rr.Record, " ")
-	cname := s[0]
-	//含有特殊选项
-	if len(s) > 1 {
-		// 默认从第二个开始为选项
-		for _, v := range s {
-			if v == "-i" {
-				cname = HandleIPembed(d.Name, d.cAddr.IP)
-				continue
+	} else {
+		//正常解析过程
+		dnsAnswer.Type = layers.DNSTypeCNAME
+		s := strings.Split(d.rr.Record, " ")
+		cname := s[0]
+		//含有特殊选项
+		if len(s) > 1 {
+			// 默认从第二个开始为选项
+			for _, v := range s {
+				if v == "-i" {
+					cname = HandleIPembed(d.Name, d.cAddr.IP)
+					continue
+				}
+				if v == "-r" {
+					cname = HandleReplacedomain(cname, d.rr.Record)
+					continue
+				}
 			}
-			if v == "-r" {
-				cname = HandleReplacedomain(cname, d.rr.Record)
-				continue
+			// 默认含有特殊选项的均为实验用
+			// 将对应的交互信息计入resolverlog中
+			n := util.GetNum(d.Name)
+			util.RLog.Add(n, d.cAddr.IP.String()+"|"+d.Name+"|"+Typecode2str[d.QType])
+			rlog, err := util.RLog.NumLog2Str(n)
+			if !err {
+				go util.Debug(n + "------" + rlog)
 			}
+			// 记录存在新增数据的时候输出
+			//if util.RLog.ChangeFlag[n] {
+			//	rlog, err := util.RLog.NumLog2Str(n)
+			//	if !err {
+			//		go util.Debug(n + "------" + rlog)
+			//		util.RLog.ChangeFlag[n] = false
+			//	}
+			//}
+			// 记录所有请求的源IP,已跟随IPlog结构体一起废除
+			//util.IpLog.Add(n, d.cAddr.IP.String())
+			//iplog, err := util.IpLog.Log2Str(n)
+			//if !err {
+			//	go util.Debug("IP" + n + "------" + iplog)
+			//}
 		}
-		// 默认含有特殊选项的均为实验用
-		// 将对应的交互信息计入resolverlog中
-		n := util.GetNum(d.Name)
-		util.RLog.Add(n, d.cAddr.IP.String()+"|"+d.Name+"|"+Typecode2str[d.QType])
-		rlog, err := util.RLog.NumLog2Str(n)
-		if !err {
-			go util.Debug(n + "------" + rlog)
+		dnsAnswer.CNAME = []byte(cname)
+		dnsAnswer.Name = []byte(d.Name)
+		dnsAnswer.Class = layers.DNSClassIN
+
+		// 返回消息填充
+		d.rep.QR = true
+		d.rep.ANCount = 1
+		d.rep.OpCode = layers.DNSOpCodeQuery
+		d.rep.AA = true
+		d.rep.Answers = append(d.rep.Answers, dnsAnswer)
+		d.rep.ResponseCode = layers.DNSResponseCodeNoErr
+		aInfo, ns := AuthInfo(d.Name)
+		d.rep.Authorities = append(d.rep.Authorities, aInfo)
+		d.rep.Additionals = append(d.rep.Additionals, AdditionalInfo(ns))
+
+		err := d.rep.SerializeTo(buf, opts)
+		if err != nil {
+			panic(err)
 		}
-		// 记录存在新增数据的时候输出
-		//if util.RLog.ChangeFlag[n] {
-		//	rlog, err := util.RLog.NumLog2Str(n)
-		//	if !err {
-		//		go util.Debug(n + "------" + rlog)
-		//		util.RLog.ChangeFlag[n] = false
-		//	}
-		//}
-		// 记录所有请求的源IP,已跟随IPlog结构体一起废除
-		//util.IpLog.Add(n, d.cAddr.IP.String())
-		//iplog, err := util.IpLog.Log2Str(n)
-		//if !err {
-		//	go util.Debug("IP" + n + "------" + iplog)
-		//}
+		d.u.WriteTo(buf.Bytes(), d.cAddr)
+		buf.Clear()
 	}
-	dnsAnswer.CNAME = []byte(cname)
-	dnsAnswer.Name = []byte(d.Name)
-	dnsAnswer.Class = layers.DNSClassIN
-
-	// 返回消息填充
-	d.rep.QR = true
-	d.rep.ANCount = 1
-	d.rep.OpCode = layers.DNSOpCodeQuery
-	d.rep.AA = true
-	d.rep.Answers = append(d.rep.Answers, dnsAnswer)
-	d.rep.ResponseCode = layers.DNSResponseCodeNoErr
-	aInfo, ns := AuthInfo(d.Name)
-	d.rep.Authorities = append(d.rep.Authorities, aInfo)
-	d.rep.Additionals = append(d.rep.Additionals, AdditionalInfo(ns))
-
-	err := d.rep.SerializeTo(buf, opts)
-	if err != nil {
-		panic(err)
-	}
-	d.u.WriteTo(buf.Bytes(), d.cAddr)
-	buf.Clear()
 }
 
 // 返回权威服务器的授权信息
