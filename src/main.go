@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"github.com/jinzhu/gorm"
 	"net"
 	Dns "ohmydns/src/dns"
 	"ohmydns/src/util"
@@ -43,7 +44,12 @@ func main() {
 	//初始化解析配置
 	parseparam()
 	db := util.Initmysql()
-	fmt.Println(db.Value)
+	defer func(db *gorm.DB) {
+		err := db.Close()
+		if err != nil {
+			panic("数据库关闭失败")
+		}
+	}(db)
 	// 初始化日志工具
 	util.Initlogger("./log/main.log")
 	// 初始化实验记录缓冲区
@@ -71,6 +77,7 @@ func main() {
 		packet := gopacket.NewPacket(tmp, layers.LayerTypeDNS, gopacket.Default)
 		dnsPacket := packet.Layer(layers.LayerTypeDNS)
 		dns, _ := dnsPacket.(*layers.DNS)
+		util.Dnslog(db, addr, dns)
 		go dnsserver.ServeDNS(u, clientAddr, dns)
 	}
 }

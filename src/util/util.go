@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	mapset "github.com/deckarep/golang-set"
+	"github.com/google/gopacket/layers"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"net"
@@ -37,7 +38,7 @@ type Resolvbase struct { // 需要修改的字段映射
 	Id    uint32    `gorm:"column:ID;PRIMARY_KEY"` // 记录ID
 	Eid   string    `gorm:"column:EX_ID"`          // 对应的实验ID
 	Date  time.Time `gorm:"column:DATE"`           // 记录输入时间
-	Q     *string   `gorm:"column:QVALUE"`         // 查询内容
+	Q     string    `gorm:"column:QVALUE"`         // 查询内容
 	QType string    `gorm:"column:QTYPE"`          //查询类型
 	N     string    `gorm:"column:EX_N"`           // 实验进展（c1，c2。。。）
 	SIP   string    `gorm:"column:SIP"`            //查询的源IP
@@ -201,24 +202,6 @@ func (r ResolverLog) NumLog2Str(n string) (string, bool) {
 	return str, !ok
 }
 
-//将对应IP记录集合转为字符串，格式为[str1,str2...]，已废除
-//func (i IPLog) Log2Str(n string) (string, bool) {
-//	// 搜寻是否存在对应记录
-//	s, ok := i.Logmap[n]
-//	if !ok {
-//		Warn("不存在对应的实验编号")
-//		return "实验编号不存在", ok
-//	}
-//	// 存在记录，遍历集合重新格式化
-//	str := "["
-//	for i := s.Front(); i.Next() != nil; i = i.Next() {
-//		str = str + fmt.Sprint(i.Next().Value) + ","
-//	}
-//
-//	str = str + fmt.Sprint(s.Back().Value) + "]"
-//	return str, !ok
-//}
-
 // 从l中随机生成长度为n的字符串
 // 该功能已弃用
 //func RandStr(n int, l string) string {
@@ -271,4 +254,20 @@ func Initmysql() *gorm.DB {
 		fmt.Println("表已存在")
 	}
 	return db
+}
+
+// 记录dns信息
+func Dnslog(db *gorm.DB, caddr *net.UDPAddr, data *layers.DNS) {
+	// 是实验所需的请求
+	if strings.Contains(string(data.Questions[0].Name), "testv4-v6") {
+		r := Resolvbase{
+			Eid:   GetNum(string(data.Questions[0].Name)),
+			Date:  time.Now(),
+			Q:     string(data.Questions[0].Name),
+			QType: data.Questions[0].Type.String(),
+			N:     string(data.Questions[0].Name)[1:2],
+			SIP:   caddr.IP.String(),
+		}
+		db = db.Create(&r)
+	}
 }

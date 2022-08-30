@@ -181,9 +181,13 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 			panic(err)
 		}
 		util.Warn("不存在对应" + string(request.Questions[0].Name) + "的解析记录")
-		u.WriteTo(buf.Bytes(), clientAddr)
+		_, err = u.WriteTo(buf.Bytes(), clientAddr)
+		if err != nil {
+			return 0
+		}
 		return 1
 	}
+
 	// 将需要的关键数据集成到一个结构体中交由具体的函数处理
 	dnsdata := DNSdata{
 		// 默认认为只有一个查询域名

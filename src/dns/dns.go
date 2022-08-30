@@ -6,15 +6,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"net"
-	"ohmydns/src/util"
 	"strings"
 )
-
-var Typecode2str = map[int]string{
-	int(layers.DNSTypeA):     "A",
-	int(layers.DNSTypeAAAA):  "AAAA",
-	int(layers.DNSTypeCNAME): "CNAME",
-}
 
 // 	v4-v6切换回合
 const turn = 2
@@ -50,9 +43,15 @@ func HandleA(d DNSdata) {
 		panic(err)
 	}
 	if !Retran_flag {
-		d.u.WriteTo(buf.Bytes(), d.cAddr)
+		_, err := d.u.WriteTo(buf.Bytes(), d.cAddr)
+		if err != nil {
+			return
+		}
 	}
-	buf.Clear()
+	err = buf.Clear()
+	if err != nil {
+		return
+	}
 }
 
 // AAAA记录处理函数
@@ -77,9 +76,15 @@ func HandleAAAA(d DNSdata) {
 	}
 	// 控制是否返回最终结果
 	if !Retran_flag {
-		d.u.WriteTo(buf.Bytes(), d.cAddr)
+		_, err := d.u.WriteTo(buf.Bytes(), d.cAddr)
+		if err != nil {
+			return
+		}
 	}
-	buf.Clear()
+	err = buf.Clear()
+	if err != nil {
+		return
+	}
 }
 
 // NS记录处理函数
@@ -95,7 +100,6 @@ func HandleCN(d DNSdata) {
 		dName := "lastdomain.testv4-v6.live"
 		d.RType = "AAAA"
 		d.rr = records[dName]
-		// TODO:在这里记录关键信息
 		HandleAAAA(d)
 	} else {
 		//正常解析过程
@@ -117,12 +121,12 @@ func HandleCN(d DNSdata) {
 			}
 			// 默认含有特殊选项的均为实验用
 			// 将对应的交互信息计入resolverlog中
-			n := util.GetNum(d.Name)
-			util.RLog.Add(n, d.cAddr.IP.String()+"|"+d.Name+"|"+Typecode2str[d.QType])
-			rlog, err := util.RLog.NumLog2Str(n)
-			if !err {
-				go util.Debug(n + "------" + rlog)
-			}
+			//n := util.GetNum(d.Name)
+			//util.RLog.Add(n, d.cAddr.IP.String()+"|"+d.Name+"|"+Typecode2str[d.QType])
+			//rlog, err := util.RLog.NumLog2Str(n)
+			//if !err {
+			//	go util.Debug(n + "------" + rlog)
+			//}
 			// 记录所有请求的源IP,已跟随IPlog结构体一起废除
 			//util.IpLog.Add(n, d.cAddr.IP.String())
 			//iplog, err := util.IpLog.Log2Str(n)
@@ -150,9 +154,15 @@ func HandleCN(d DNSdata) {
 			panic(err)
 		}
 		if !Retran_flag {
-			d.u.WriteTo(buf.Bytes(), d.cAddr)
+			_, err2 := d.u.WriteTo(buf.Bytes(), d.cAddr)
+			if err2 != nil {
+				return
+			}
 		}
-		buf.Clear()
+		err = buf.Clear()
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -193,18 +203,7 @@ func AdditionalInfo(s string) layers.DNSResourceRecord {
 	return *dnsadd
 }
 
-// 解析器跟踪
-func TrackResvIP(s string) {
-
-}
-
+// 不要在服务端进行解析器跟踪，花销太大
+//func TrackResvIP(s string) {
 //
-//// 根据参数定义对记录进行处理
-//// TODO: argServeMUX实现
-////func HandleRR(s string) string {
-////	strs := strings.Split(s, " ")
-////	handleRR:= map[string]func(){
-////		'-i':makedomain()
-////	}
-////
-////}
+//}
