@@ -33,17 +33,21 @@ func parseparam() {
 	// 重传选项
 	retran := flag.Bool("rt", false, "延迟解析器响应诱发解析器进行重传")
 	Dns.Retran_flag = *retran
+	// 数据库选项
+	util.Mconf.Addr = *(flag.String("ml", "127.0.0.1", "mysql服务的地址，用以记录日志"))
+	util.Mconf.Port = *(flag.Int("mp", 3306, "mysql服务的端口"))
+	util.Mconf.Pass = *(flag.String("mP", "1234", "mysql服务的密码"))
 }
 
 func main() {
 	//初始化解析配置
 	parseparam()
+	db := util.Initmysql()
+	fmt.Println(db.Value)
 	// 初始化日志工具
 	util.Initlogger("./log/main.log")
 	// 初始化实验记录缓冲区
 	util.NewResolverLog()
-	// 初始化IP记录缓冲区，已废除
-	//util.NewIPLog()
 	// 初始化计时器，用于定时清空变量空间，减小系统负担
 	t := time.NewTicker(time.Hour * 48)
 	go exejob(*t)

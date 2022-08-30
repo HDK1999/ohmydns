@@ -5,13 +5,43 @@ import (
 	"flag"
 	"fmt"
 	mapset "github.com/deckarep/golang-set"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
+
+// mysql配置
+type Mysqlconfig struct {
+	user    string
+	Pass    string
+	Addr    string
+	Port    int
+	dbname  string
+	tabname string
+}
+
+var Mconf = Mysqlconfig{
+	dbname:  "test46",
+	tabname: "resolver",
+	user:    "root",
+}
+
+// reolver表
+type Resolvbase struct { // 需要修改的字段映射
+	Id    uint32    `gorm:"column:ID;PRIMARY_KEY"` // 记录ID
+	Eid   string    `gorm:"column:EX_ID"`          // 对应的实验ID
+	Date  time.Time `gorm:"column:DATE"`           // 记录输入时间
+	Q     *string   `gorm:"column:QVALUE"`         // 查询内容
+	QType string    `gorm:"column:QTYPE"`          //查询类型
+	N     string    `gorm:"column:EX_N"`           // 实验进展（c1，c2。。。）
+	SIP   string    `gorm:"column:SIP"`            //查询的源IP
+}
 
 type RR struct {
 	Record string
@@ -214,4 +244,31 @@ func InitRRarg() {
 	_ = flag.Bool("i", false, "将请求的IP嵌入到域名中返回结果，仅适用于CNAME记录")
 	_ = flag.Bool("r", false, "父级域名替换，用于CNAME，例如请求的域名为b.a.com将返回b.c.live，可与-i选项叠加")
 	return
+}
+
+// 建立mysql连接
+func Initmysql() *gorm.DB {
+	// 不考虑数据库不存在的情况
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%v)/%s?charset=utf8&parseTime=True&loc=Local", Mconf.user, Mconf.Pass, Mconf.Addr, Mconf.Port, Mconf.dbname)
+	db, err := gorm.Open("mysql", dsn)
+	if err != nil {
+		// 数据库连接失败
+		panic(err)
+	}
+	if !db.HasTable(&Resolvbase{}) {
+		err = db.Model(&Resolvbase{}).Debug().
+			AutoMigrate(&Resolvbase{}).Error
+		if err != nil {
+			// 数据表创建发生错误
+			panic(err)
+		}
+		if db.HasTable(&Resolvbase{}) {
+			fmt.Println("表创建成功")
+		} else {
+			fmt.Println("表创建失败")
+		}
+	} else {
+		fmt.Println("表已存在")
+	}
+	return db
 }
