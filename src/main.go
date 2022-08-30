@@ -3,6 +3,7 @@ package main
 // ohmydns入口文件
 
 import (
+	"flag"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -27,7 +28,16 @@ func exejob(t time.Ticker) {
 	}
 }
 
+//解析参数,并赋值给相应的flag
+func parseparam() {
+	// 重传选项
+	retran := flag.Bool("rt", false, "延迟解析器响应诱发解析器进行重传")
+	Dns.Retran_flag = *retran
+}
+
 func main() {
+	//初始化解析配置
+	parseparam()
 	// 初始化日志工具
 	util.Initlogger("./log/main.log")
 	// 初始化实验记录缓冲区
@@ -40,7 +50,7 @@ func main() {
 
 	//Listen on UDP Port at ipv4&ipv6
 	Serveaddr := net.UDPAddr{
-		Port: 53,
+		Port: 113,
 		IP:   net.ParseIP("localhost"),
 	}
 	//ipv4和ipv6解析

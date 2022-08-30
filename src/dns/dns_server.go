@@ -45,8 +45,7 @@ var records = map[string]RR{
 	"lastdomain.testv4-v6.live": {"fe80::bcc0:e4ff:fe5f:9fa4", "AAAA"},
 }
 
-//// 默认的DNS处理路由
-//var DefaultDNSSM DNSServeMux
+var Retran_flag bool
 
 // DNS处理路由结构体(A、CNAME...)
 type DNSServeMux struct {
