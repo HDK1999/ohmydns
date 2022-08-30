@@ -35,9 +35,13 @@ func parseparam() {
 	retran := flag.Bool("rt", false, "延迟解析器响应诱发解析器进行重传")
 	Dns.Retran_flag = *retran
 	// 数据库选项
-	util.Mconf.Addr = *(flag.String("ml", "127.0.0.1", "mysql服务的地址，用以记录日志"))
-	util.Mconf.Port = *(flag.Int("mp", 3306, "mysql服务的端口"))
-	util.Mconf.Pass = *(flag.String("mP", "1234", "mysql服务的密码"))
+	addr := flag.String("ml", "127.0.0.1", "mysql服务的地址，用以记录日志")
+	port := flag.Int("mp", 3306, "mysql服务的端口")
+	pass := flag.String("mP", "1234", "mysql服务的密码")
+	flag.Parse()
+	util.Mconf.Addr = *addr
+	util.Mconf.Port = *port
+	util.Mconf.Pass = *pass
 }
 
 func main() {
