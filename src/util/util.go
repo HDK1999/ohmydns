@@ -231,7 +231,6 @@ func InitRRarg() {
 
 // 建立mysql连接
 func Initmysql() *gorm.DB {
-	fmt.Println(Mconf.Addr)
 	// 不考虑数据库不存在的情况
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%v)/%s?charset=utf8&parseTime=True&loc=Local", Mconf.user, Mconf.Pass, Mconf.Addr, Mconf.Port, Mconf.dbname)
 	db, err := gorm.Open("mysql", dsn)
