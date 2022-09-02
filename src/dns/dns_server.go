@@ -41,6 +41,8 @@ var records = map[string]RR{
 
 	"*.v4.testv4-v6.live": {".v4.>>.v6. -i -r", "CNAME"},
 	"*.v6.testv4-v6.live": {".v6.>>.v4. -i -r", "CNAME"},
+	"testns4":             {"ns4.testv4-v6.live", "NS"},
+	"testns6":             {"ns6.testv4-v6.live", "NS"},
 
 	"lastdomain.testv4-v6.live": {"fe80::bcc0:e4ff:fe5f:9fa4", "AAAA"},
 }
@@ -158,36 +160,47 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 
 	var rr RR
 	ok := false
-
-	// 循环判断question是否为key的子域名
-	for k := range records {
-		//泛域名特殊处理，且要保留原有键
-		n := strings.ReplaceAll(k, "*.", "")
-		if request.Questions != nil {
-			if dns.IsSubDomain(n, string(request.Questions[0].Name)) {
-				rr, ok = records[k]
-				// TODO：最大前缀匹配
-				break
-			}
+	// 如果为NS查询，默认为实验用
+	if request.Questions[0].Type == layers.DNSTypeNS {
+		//	根据源地址进行分类处理
+		if strings.Contains(clientAddr.IP.String(), ":") {
+			//	v6地址
+			rr = records["testns6"]
 		} else {
+			//	v4地址
+			rr = records["testns4"]
+		}
+	} else {
+		// 循环判断question是否为key的子域名
+		for k := range records {
+			//泛域名特殊处理，且要保留原有键
+			n := strings.ReplaceAll(k, "*.", "")
+			if request.Questions != nil {
+				if dns.IsSubDomain(n, string(request.Questions[0].Name)) {
+					rr, ok = records[k]
+					// TODO：最大前缀匹配
+					break
+				}
+			} else {
+				return 1
+			}
+		}
+		// TODO:对于请求类型是否匹配的判断
+		if !ok {
+			//不存在对应记录
+			err := request.SerializeTo(buf, opts)
+			if err != nil {
+				panic(err)
+			}
+			util.Warn("不存在对应" + string(request.Questions[0].Name) + "的解析记录")
+			_, err = u.WriteTo(buf.Bytes(), clientAddr)
+			if err != nil {
+				return 0
+			}
 			return 1
 		}
-	}
-	// TODO:对于请求类型是否匹配的判断
-	if !ok {
-		//不存在对应记录
-		err := request.SerializeTo(buf, opts)
-		if err != nil {
-			panic(err)
-		}
-		util.Warn("不存在对应" + string(request.Questions[0].Name) + "的解析记录")
-		_, err = u.WriteTo(buf.Bytes(), clientAddr)
-		if err != nil {
-			return 0
-		}
-		return 1
-	}
 
+	}
 	// 将需要的关键数据集成到一个结构体中交由具体的函数处理
 	dnsdata := DNSdata{
 		// 默认认为只有一个查询域名
@@ -202,4 +215,5 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 	h, _ := mux.Handler(dnsdata.RType)
 	h.ServeDNS(dnsdata)
 	return 0
+
 }

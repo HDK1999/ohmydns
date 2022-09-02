@@ -90,6 +90,36 @@ func HandleAAAA(d DNSdata) {
 // NS记录处理函数
 func HandleNS(sdata DNSdata) {
 	//TODO：NS解析
+	dnsAnswer.Type = layers.DNSTypeNS
+	dnsAnswer.NS = []byte(sdata.rr.Record)
+	dnsAnswer.Class = layers.DNSClassIN
+	dnsAnswer.Name = []byte(sdata.Name)
+	dnsAnswer.TTL = 3600
+	// 返回消息填充
+	sdata.rep.QR = true
+	sdata.rep.ANCount = 1
+	sdata.rep.OpCode = layers.DNSOpCodeQuery
+	sdata.rep.AA = true
+	sdata.rep.Answers = append(sdata.rep.Answers, dnsAnswer)
+	sdata.rep.ResponseCode = layers.DNSResponseCodeNoErr
+	aInfo, ns := AuthInfo(sdata.Name)
+	sdata.rep.Authorities = append(sdata.rep.Authorities, aInfo)
+	sdata.rep.Additionals = append(sdata.rep.Additionals, AdditionalInfo(ns))
+
+	err := sdata.rep.SerializeTo(buf, opts)
+	if err != nil {
+		panic(err)
+	}
+	if !Retran_flag {
+		_, err2 := sdata.u.WriteTo(buf.Bytes(), sdata.cAddr)
+		if err2 != nil {
+			return
+		}
+	}
+	err = buf.Clear()
+	if err != nil {
+		return
+	}
 }
 
 // CNAME记录处理函数
@@ -119,20 +149,6 @@ func HandleCN(d DNSdata) {
 					continue
 				}
 			}
-			// 默认含有特殊选项的均为实验用
-			// 将对应的交互信息计入resolverlog中
-			//n := util.GetNum(d.Name)
-			//util.RLog.Add(n, d.cAddr.IP.String()+"|"+d.Name+"|"+Typecode2str[d.QType])
-			//rlog, err := util.RLog.NumLog2Str(n)
-			//if !err {
-			//	go util.Debug(n + "------" + rlog)
-			//}
-			// 记录所有请求的源IP,已跟随IPlog结构体一起废除
-			//util.IpLog.Add(n, d.cAddr.IP.String())
-			//iplog, err := util.IpLog.Log2Str(n)
-			//if !err {
-			//	go util.Debug("IP" + n + "------" + iplog)
-			//}
 		}
 		dnsAnswer.CNAME = []byte(cname)
 		dnsAnswer.Name = []byte(d.Name)
@@ -182,6 +198,7 @@ func AuthInfo(s string) (layers.DNSResourceRecord, string) {
 		dnsserver.Name = []byte("v4.testv4-v6.live")
 	}
 	dnsserver.Class = layers.DNSClassIN
+	dnsserver.TTL = 3600
 	return *dnsserver, ns
 }
 
@@ -190,16 +207,17 @@ func AdditionalInfo(s string) layers.DNSResourceRecord {
 	// 根据不同的NS返回额外信息
 	if strings.Contains(s, "ns6") {
 		dnsadd.Type = layers.DNSTypeAAAA
-		a, _, _ := net.ParseCIDR("240c:4081:8002:8910::4" + "/64")
+		a, _, _ := net.ParseCIDR("240c:4081:8002:8910::5" + "/64")
 		dnsadd.IP = a
 		dnsadd.Class = layers.DNSClassIN
 	} else {
 		dnsadd.Type = layers.DNSTypeA
-		a, _, _ := net.ParseCIDR("120.48.25.7" + "/24")
+		a, _, _ := net.ParseCIDR("120.48.148.235" + "/24")
 		dnsadd.IP = a
 		dnsadd.Class = layers.DNSClassIN
 	}
 	dnsadd.Name = []byte(s)
+	dnsadd.TTL = 3600
 	return *dnsadd
 }
 

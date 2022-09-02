@@ -81,7 +81,10 @@ func main() {
 		packet := gopacket.NewPacket(tmp, layers.LayerTypeDNS, gopacket.Default)
 		dnsPacket := packet.Layer(layers.LayerTypeDNS)
 		dns, _ := dnsPacket.(*layers.DNS)
-		util.Dnslog(db, addr, dns)
+		if dns.Questions[0].Type == layers.DNSTypeAAAA || dns.Questions[0].Type == layers.DNSTypeA {
+			// 只记录A和AAAA记录请求
+			util.Dnslog(db, addr, dns)
+		}
 		go dnsserver.ServeDNS(u, clientAddr, dns)
 	}
 }
