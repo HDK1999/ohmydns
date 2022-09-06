@@ -94,6 +94,9 @@ func GetNum(domain string) string {
 	}
 	//根据规则提取关键信息
 	result1 := reg1.FindAllStringSubmatch(domain, -1)
+	if len(result1) < 1 {
+		return "noip"
+	}
 	return result1[0][1]
 }
 
@@ -121,13 +124,6 @@ func NewResolverLog() {
 	//RLog.ChangeFlag = make(map[string]bool)
 }
 
-//原用作IP记录，现废弃
-//func NewIPLog() {
-//	IpLog = new(IPLog)
-//	IpLog.Logmap = make(map[string]list.List)
-//	IpLog.ChangeFlag = make(map[string]bool)
-//}
-
 // 添加解析器请求记录，n——实验编号，l——对应日志
 func (r ResolverLog) Add(n, l string) {
 	// 搜寻是否存在对应记录
@@ -150,25 +146,6 @@ func (r ResolverLog) Add(n, l string) {
 	s.PushBack(l)
 	return
 }
-
-// 添加请求源IP的记录，n——实验编号，ip——源IP，已跟随IPlog废除
-//func (i IPLog) Add(n, ip string) {
-//	// 搜寻是否存在对应记录
-//	s, ok := i.Logmap[n]
-//	// 不存在对应记录就新建
-//	if !ok {
-//		// 记录所有对应的实验编号的交互
-//		log := list.New()
-//		log.PushBack(ip)
-//		i.Logmap[n] = *log
-//		//i.ChangeFlag[n] = true
-//		return
-//	}
-//	//存在对应记录就加入记录
-//	//i.ChangeFlag[n] = true
-//	s.PushBack(ip)
-//	return
-//}
 
 // 判断加入的日志是否会使原日志发生变化
 func (r ResolverLog) IfChange(s mapset.Set, l string) bool {
