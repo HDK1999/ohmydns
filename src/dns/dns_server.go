@@ -162,13 +162,15 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 	ok := false
 	// 如果为NS查询，默认为实验用
 	if request.Questions[0].Type == layers.DNSTypeNS {
-		//	根据源地址进行分类处理
-		if strings.Contains(clientAddr.IP.String(), ":") {
-			//	v6地址
-			rr = records["testns6"]
-		} else {
+		//	根据源地址进行分类处理,存在v4解析器查询v6域名的问题，会导致响应信息错误
+		//if strings.Contains(clientAddr.IP.String(), ":")
+		//  根据查询的域名进行分类处理，只需对有没有v4.进行查询即可分类
+		if strings.Contains(string(request.Questions[0].Name), "v4.") {
 			//	v4地址
 			rr = records["testns4"]
+		} else {
+			//	v6地址
+			rr = records["testns6"]
 		}
 	} else {
 		// 循环判断question是否为key的子域名
@@ -188,6 +190,7 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 		// TODO:对于请求类型是否匹配的判断
 		if !ok {
 			//不存在对应记录
+			request.QR = true
 			err := request.SerializeTo(buf, opts)
 			if err != nil {
 				panic(err)

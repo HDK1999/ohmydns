@@ -126,60 +126,72 @@ func HandleNS(sdata DNSdata) {
 func HandleCN(d DNSdata) {
 	//根据实验需要，检测是否需要转化为AAAA记录返回
 	str := []byte(d.Name)
-	if str[1] >= 48+Len {
-		dName := "lastdomain.testv4-v6.live"
-		d.RType = "AAAA"
-		d.rr = records[dName]
-		HandleAAAA(d)
-	} else {
-		//正常解析过程
-		dnsAnswer.Type = layers.DNSTypeCNAME
-		s := strings.Split(d.rr.Record, " ")
-		cname := s[0]
-		//含有特殊选项
-		if len(s) > 1 {
-			// 默认从第二个开始为选项
-			for _, v := range s {
-				if v == "-i" {
-					cname = HandleIPembed(d.Name, d.cAddr.IP)
-					continue
-				}
-				if v == "-r" {
-					cname = HandleReplacedomain(cname, d.rr.Record)
-					continue
+	if str[0] == 99 {
+		//	实验用域名
+		if str[1] >= 48+Len {
+			dName := "lastdomain.testv4-v6.live"
+			d.RType = "AAAA"
+			d.rr = records[dName]
+			HandleAAAA(d)
+		} else {
+			//正常解析过程
+			dnsAnswer.Type = layers.DNSTypeCNAME
+			s := strings.Split(d.rr.Record, " ")
+			cname := s[0]
+			//含有特殊选项
+			if len(s) > 1 {
+				// 默认从第二个开始为选项
+				for _, v := range s {
+					if v == "-i" {
+						cname = HandleIPembed(d.Name, d.cAddr.IP)
+						continue
+					}
+					if v == "-r" {
+						cname = HandleReplacedomain(cname, d.rr.Record)
+						continue
+					}
 				}
 			}
-		}
-		dnsAnswer.CNAME = []byte(cname)
-		dnsAnswer.Name = []byte(d.Name)
-		dnsAnswer.Class = layers.DNSClassIN
+			dnsAnswer.CNAME = []byte(cname)
+			dnsAnswer.Name = []byte(d.Name)
+			dnsAnswer.Class = layers.DNSClassIN
 
-		// 返回消息填充
-		d.rep.QR = true
-		d.rep.ANCount = 1
-		d.rep.OpCode = layers.DNSOpCodeQuery
-		d.rep.AA = true
-		d.rep.Answers = append(d.rep.Answers, dnsAnswer)
-		d.rep.ResponseCode = layers.DNSResponseCodeNoErr
-		aInfo, ns := AuthInfo(d.Name)
-		d.rep.Authorities = append(d.rep.Authorities, aInfo)
-		d.rep.Additionals = append(d.rep.Additionals, AdditionalInfo(ns))
+			// 返回消息填充
+			d.rep.QR = true
+			d.rep.ANCount = 1
+			d.rep.OpCode = layers.DNSOpCodeQuery
+			d.rep.AA = true
+			d.rep.Answers = append(d.rep.Answers, dnsAnswer)
+			d.rep.ResponseCode = layers.DNSResponseCodeNoErr
+			aInfo, ns := AuthInfo(d.Name)
+			d.rep.Authorities = append(d.rep.Authorities, aInfo)
+			d.rep.Additionals = append(d.rep.Additionals, AdditionalInfo(ns))
 
-		err := d.rep.SerializeTo(buf, opts)
-		if err != nil {
-			panic(err)
-		}
-		if !Retran_flag {
-			_, err2 := d.u.WriteTo(buf.Bytes(), d.cAddr)
-			if err2 != nil {
+			err := d.rep.SerializeTo(buf, opts)
+			if err != nil {
+				panic(err)
+			}
+			if !Retran_flag {
+				_, err2 := d.u.WriteTo(buf.Bytes(), d.cAddr)
+				if err2 != nil {
+					return
+				}
+			}
+			err = buf.Clear()
+			if err != nil {
 				return
 			}
 		}
-		err = buf.Clear()
+	} else {
+		//	非实验用域名
+		d.rep.QR = true
+		err := d.rep.SerializeTo(buf, opts)
+		_, err = d.u.WriteTo(buf.Bytes(), d.cAddr)
 		if err != nil {
 			return
 		}
 	}
+
 }
 
 // 返回权威服务器的授权信息
@@ -187,15 +199,15 @@ func AuthInfo(s string) (layers.DNSResourceRecord, string) {
 	dnsserver := new(layers.DNSResourceRecord)
 	var ns string
 	dnsserver.Type = layers.DNSTypeNS
-	// 根据不同的子域名
-	if strings.Contains(s, ".v6.") {
-		dnsserver.NS = []byte("ns6.testv4-v6.live")
-		ns = "ns6.testv4-v6.live"
-		dnsserver.Name = []byte("v6.testv4-v6.live")
-	} else {
+	// 根据不同的子域名返回对应信息，只需对v4.查询即可分类
+	if strings.Contains(s, "v4.") {
 		dnsserver.NS = []byte("ns4.testv4-v6.live")
 		ns = "ns4.testv4-v6.live"
 		dnsserver.Name = []byte("v4.testv4-v6.live")
+	} else {
+		dnsserver.NS = []byte("ns6.testv4-v6.live")
+		ns = "ns6.testv4-v6.live"
+		dnsserver.Name = []byte("v6.testv4-v6.live")
 	}
 	dnsserver.Class = layers.DNSClassIN
 	dnsserver.TTL = 3600
