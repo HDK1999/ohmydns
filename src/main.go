@@ -4,49 +4,55 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/jinzhu/gorm"
 	"net"
 	Dns "ohmydns/src/dns"
 	"ohmydns/src/util"
-	"reflect"
 	"strconv"
-	"time"
 )
 
-// 定时任务
-func exejob(t time.Ticker) {
-	for {
-		select {
-		case <-t.C:
-			fmt.Println("begin clean")
-			fmt.Println(util.RLog.NumLog2Str("111"))
-			fmt.Println(reflect.TypeOf(util.RLog))
-			util.NewResolverLog()
-		}
-	}
+// 定时任务,由于不使用log存储，因此取消
+//func exejob(t time.Ticker) {
+//	for {
+//		select {
+//		case <-t.C:
+//			fmt.Println("begin clean")
+//			fmt.Println(util.RLog.NumLog2Str("111"))
+//			fmt.Println(reflect.TypeOf(util.RLog))
+//			util.NewResolverLog()
+//		}
+//	}
+//}
+type Conf struct {
+	Port int
+	IP   string
 }
 
 //解析参数,并赋值给相应的flag
-func parseparam() {
+func parseparam() Conf {
 	// 重传选项
 	retran := flag.Bool("rt", false, "延迟解析器响应诱发解析器进行重传")
 	Dns.Retran_flag = *retran
 	// 数据库选项
-	addr := flag.String("ml", "127.0.0.1", "mysql服务的地址，用以记录日志")
-	port := flag.Int("mp", 3306, "mysql服务的端口")
-	pass := flag.String("mP", "1234", "mysql服务的密码")
+	maddr := flag.String("ml", "127.0.0.1", "mysql服务的地址，用以记录日志")
+	mport := flag.Int("mp", 3306, "mysql服务的端口")
+	mpass := flag.String("mP", "1234", "mysql服务的密码")
+	//服务选项
+	port := flag.Int("p", 113, "DNS服务的端口")
+	ip := flag.String("b", "localhost", "DNS服务的监听地址")
 	flag.Parse()
-	util.Mconf.Addr = *addr
-	util.Mconf.Port = *port
-	util.Mconf.Pass = *pass
+	util.Mconf.Addr = *maddr
+	util.Mconf.Port = *mport
+	util.Mconf.Pass = *mpass
+	return Conf{IP: *ip, Port: *port}
+
 }
 
 func main() {
 	//初始化解析配置
-	parseparam()
+	conf := parseparam()
 	db := util.Initmysql()
 	defer func(db *gorm.DB) {
 		err := db.Close()
@@ -58,14 +64,14 @@ func main() {
 	util.Initlogger("./log/main.log")
 	// 初始化实验记录缓冲区
 	util.NewResolverLog()
-	// 初始化计时器，用于定时清空变量空间，减小系统负担
-	t := time.NewTicker(time.Hour * 48)
-	go exejob(*t)
+	// 初始化计时器，用于定时清空变量空间，减小系统负担，现无需该功能
+	//t := time.NewTicker(time.Hour * 48)
+	//go exejob(*t)
 
 	//Listen on UDP Port at ipv4&ipv6
 	Serveaddr := net.UDPAddr{
-		Port: 113,
-		IP:   net.ParseIP("localhost"),
+		Port: conf.Port,
+		IP:   net.ParseIP(conf.IP),
 	}
 	//ipv4和ipv6解析
 	u, _ := net.ListenUDP("udp", &Serveaddr)
