@@ -9,5 +9,6 @@ RUN go env -w GOPROXY=https://goproxy.io,direct;\
 FROM ubuntu:latest
 WORKDIR /project/ohmydns
 COPY --from=0 /project/ohmydns/bin/ /project/ohmydns/bin/
-EXPOSE 53
+EXPOSE 53/tcp
+EXPOSE 53/udp
 ENTRYPOINT ["./bin/ohmydns"]
