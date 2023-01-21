@@ -97,7 +97,7 @@ func GetNum(domain string) string {
 	if len(result1) < 1 {
 		return "noip"
 	}
-	return result1[len(result1)-4][1:]
+	return result1[0][1:]
 }
 
 //判断一个域名是否是泛域名
