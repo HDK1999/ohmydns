@@ -97,7 +97,7 @@ func GetNum(domain string) string {
 	if len(result1) < 1 {
 		return "noip"
 	}
-	return result1[0][1:]
+	return result1[len(result1)-4][1:]
 }
 
 //判断一个域名是否是泛域名
@@ -217,7 +217,7 @@ func Initmysql() *gorm.DB {
 // 记录dns信息
 func Dnslog(db *gorm.DB, caddr *net.UDPAddr, data *layers.DNS) {
 	// 是实验所需的请求
-	if strings.Contains(string(data.Questions[0].Name), "testv4-v6") {
+	if strings.Contains(string(data.Questions[0].Name), "testv4-v6") && data.Questions[0].Name[0] == 99 {
 		r := Resolvbase{
 			Eid:   GetNum(string(data.Questions[0].Name)),
 			Date:  time.Now(),
