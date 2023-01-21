@@ -97,6 +97,7 @@ func GetNum(domain string) string {
 	if len(result1) < 1 {
 		return "noip"
 	}
+	//响应返回
 	return result1[0][1:]
 }
 
