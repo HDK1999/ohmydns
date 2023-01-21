@@ -26,7 +26,7 @@ func Domain46(ip net.IP, domain string) string {
 	sub := strings.Split(domain, ".") // 每一级的域名
 	embdomain := ""                   //只提取后半部分域名进行嵌入
 	for _, i := range sub[2:] {
-		embdomain = embdomain + i
+		embdomain = embdomain + i+"."
 	}
 	return sub[0] + "." + sub[1] + "." + util.IPembed(ip, embdomain)
 }
