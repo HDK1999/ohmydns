@@ -20,6 +20,10 @@ var dnsAnswer layers.DNSResourceRecord
 var buf = gopacket.NewSerializeBuffer()
 var opts = gopacket.SerializeOptions{FixLengths: true} // See SerializeOptions for more details.
 
+//dns服务信息
+const v6addr = "240b:4001:21b:d300:c4b4:9a3a:6d21:62ae"
+const v4addr = "8.210.161.5"
+
 //****************************************DNS记录解析
 
 // A记录处理函数
@@ -126,6 +130,7 @@ func HandleNS(sdata DNSdata) {
 func HandleCN(d DNSdata) {
 	//根据实验需要，检测是否需要转化为AAAA记录返回
 	str := []byte(d.Name)
+	//TODO：考虑miniQname的影响
 	if str[0] == 99 {
 		//	实验用域名
 		if str[1] >= 48+Len {
@@ -219,12 +224,12 @@ func AdditionalInfo(s string) layers.DNSResourceRecord {
 	// 根据不同的NS返回额外信息
 	if strings.Contains(s, "ns6") {
 		dnsadd.Type = layers.DNSTypeAAAA
-		a, _, _ := net.ParseCIDR("240c:4081:8002:8910::5" + "/64")
+		a, _, _ := net.ParseCIDR(v6addr + "/64")
 		dnsadd.IP = a
 		dnsadd.Class = layers.DNSClassIN
 	} else {
 		dnsadd.Type = layers.DNSTypeA
-		a, _, _ := net.ParseCIDR("120.48.148.235" + "/24")
+		a, _, _ := net.ParseCIDR(v4addr + "/24")
 		dnsadd.IP = a
 		dnsadd.Class = layers.DNSClassIN
 	}

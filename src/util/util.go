@@ -29,7 +29,7 @@ type Mysqlconfig struct {
 
 var Mconf = Mysqlconfig{
 	dbname:  "test46",
-	tabname: "resolver",
+	tabname: "altas-resolver",
 	user:    "root",
 }
 
@@ -87,17 +87,17 @@ func IPembed(ip net.IP, domain string) string {
 // 从一段域名中获取到编号
 func GetNum(domain string) string {
 	//解析正则表达式，如果成功返回解释器
-	reg1 := regexp.MustCompile(`\.rip(.*?)\.`)
+	reg1 := regexp.MustCompile(`\.([^\.]*)`)
 	if reg1 == nil {
 		Error("regexp err")
 		panic("regexp error")
 	}
 	//根据规则提取关键信息
-	result1 := reg1.FindAllStringSubmatch(domain, -1)
+	result1 := reg1.FindStringSubmatch(domain)
 	if len(result1) < 1 {
 		return "noip"
 	}
-	return result1[0][1]
+	return result1[0][1:]
 }
 
 //判断一个域名是否是泛域名
@@ -178,25 +178,6 @@ func (r ResolverLog) NumLog2Str(n string) (string, bool) {
 	str = str + fmt.Sprint(s.Back().Value) + "]"
 	return str, !ok
 }
-
-// 从l中随机生成长度为n的字符串
-// 该功能已弃用
-//func RandStr(n int, l string) string {
-//	b := make([]byte, n)
-//	// A rand.Int63() generates 63 random bits, enough for letterIdMax letters!
-//	for i, cache, remain := n-1, src.Int63(), letterIdMax; i >= 0; {
-//		if remain == 0 {
-//			cache, remain = src.Int63(), letterIdMax
-//		}
-//		if idx := int(cache & letterIdMask); idx < len(l) {
-//			b[i] = l[idx]
-//			i--
-//		}
-//		cache >>= letterIdBits
-//		remain--
-//	}
-//	return *(*string)(unsafe.Pointer(&b))
-//}
 
 // 定义在记录中可以使用的参数
 //TODO:完善
