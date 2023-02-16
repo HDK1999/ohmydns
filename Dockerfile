@@ -7,6 +7,7 @@ RUN go env -w GOPROXY=https://goproxy.io,direct;\
     sed -i s@/deb.debian.org/@/mirrors.aliyun.com/@g /etc/apt/sources.list;\
     sed -i s@/security.debian.org/@/mirrors.aliyun.com/@g /etc/apt/sources.list
 FROM ubuntu:latest
+# 继承caddy
 WORKDIR /project/ohmydns
 COPY --from=0 /project/ohmydns/bin/ /project/ohmydns/bin/
 EXPOSE 53/tcp
