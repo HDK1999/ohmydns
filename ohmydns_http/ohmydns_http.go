@@ -101,7 +101,7 @@ func testResolver(c *gin.Context) {
 	mchan := make(chan *dns.Msg, 10)
 	go func() {
 
-		r, _, err := dc.Exchange(&m, rs+":1153")
+		r, _, err := dc.Exchange(&m, rs+":53")
 		if err != nil {
 			fmt.Println(err)
 			print(r)
