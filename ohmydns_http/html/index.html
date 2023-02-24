@@ -29,7 +29,7 @@
     $("#tabId").empty().append($("<tr><td>"+"请等待....."+"</td></tr>"))
     if(keyword!==""){//内容不为空
       $("#divId").show();
-      $.get("http://127.0.0.1:2153/rchains?r="+keyword,function(result,state){
+      $.get("http://8.210.161.5:2153/rchains?r="+keyword,function(result,state){
         console.log(result)
         console.log(state)
         $("#tabId").empty().append($("<tr><td>"+result.answer+"</td></tr>"))
