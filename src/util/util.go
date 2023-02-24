@@ -262,7 +262,7 @@ func Vailddomain(d string) int {
 				return 1
 			}
 			//长度也一致
-			if p == len(ds)-4 {
+			if p == len(ds)-5 {
 				return 0
 			}
 		}
@@ -278,7 +278,7 @@ func Doamin2Chain(val ...string) string {
 	ds := strings.Split(val[0], ".")
 	l, _ := strconv.Atoi(string(ds[0][1]))
 	print(l)
-	for i := 0; i < l; i++ {
+	for i := 0; i < l-1; i++ {
 		print(i)
 		res = res + "-->" + Code2IP(ds[len(ds)-5-i])
 	}

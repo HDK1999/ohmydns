@@ -64,7 +64,7 @@ var Exps = make(map[string]Exp)
 // 输入接收到的请求中的域名，Post到http中
 func Httppost(s, sip string) error {
 	//payload := url.Values{"r": {s}}
-	_, err := http.PostForm("http://localhost:2153/rresult?r="+s+"sip="+sip, nil)
+	_, err := http.PostForm("http://localhost:2153/rresult?r="+s+"&sip="+sip, nil)
 	if err != nil {
 		return err
 	}
@@ -203,8 +203,8 @@ func IP2ID(a string) string {
 func ID4domain(d string) (string, []string) {
 	var res []string
 	n_s := strings.Split(d, ".")
-	for _, n := range n_s[1 : len(n_s)-3] {
-		res = append(res, n)
-	}
+	//for _, n := range n_s[1 : len(n_s)-3] {
+	//	res = append(res, n)
+	//}
 	return n_s[1], res
 }
