@@ -6,6 +6,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"net"
+	ohttp "ohmydns/ohmydns_http"
 	"strings"
 )
 
@@ -128,8 +129,16 @@ func HandleNS(sdata DNSdata) {
 
 // CNAME记录处理函数
 func HandleCN(d DNSdata) {
+	//假设查询域名全部符合要求
 	//根据实验需要，检测是否需要转化为AAAA记录返回
 	str := []byte(d.Name)
+	print(d.Name)
+	//将链发送给http
+	err := ohttp.Httppost(d.Name, d.cAddr.IP.String())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	//TODO：考虑miniQname的影响
 	if str[0] == 99 {
 		//	实验用域名
@@ -237,8 +246,3 @@ func AdditionalInfo(s string) layers.DNSResourceRecord {
 	dnsadd.TTL = 3600
 	return *dnsadd
 }
-
-// 不要在服务端进行解析器跟踪，花销太大
-//func TrackResvIP(s string) {
-//
-//}

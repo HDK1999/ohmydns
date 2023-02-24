@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -73,15 +74,31 @@ var RLog *ResolverLog
 
 //var IpLog *IPLog
 
-//将ip嵌入域名中,作为下一级的子域名
-func IPembed(ip net.IP, domain string) string {
+//IP转为code
+func IP2Code(ip net.IP) string {
 	addr := net.IPAddr{IP: ip}
 	if strings.Contains(addr.String(), ":") {
-		//	ipv6地址
-		return strings.ReplaceAll(addr.String(), ":", "-") + "." + domain
+		//ipv6地址
+		return strings.ReplaceAll(addr.String(), ":", "-")
 	}
 	//ipv4地址
-	return strings.ReplaceAll(addr.String(), ".", "-") + "." + domain
+	return strings.ReplaceAll(addr.String(), ".", "-")
+}
+
+//Code转为IP
+func Code2IP(s string) string {
+	res := strings.Split(s, "-")
+	if len(res[0]) > 3 {
+		//	IPv6地址
+		return strings.ReplaceAll(s, "-", ":")
+	}
+	return strings.ReplaceAll(s, "-", ".")
+}
+
+//将ip嵌入域名中,作为下一级的子域名
+func IPembed(ip net.IP, domain string) string {
+	return IP2Code(ip) + "." + domain
+
 }
 
 // 从一段域名中获取到编号
@@ -229,4 +246,44 @@ func Dnslog(db *gorm.DB, caddr *net.UDPAddr, data *layers.DNS) {
 		}
 		db = db.Create(&r)
 	}
+}
+
+//判断接收到的域名是否合法
+func Vailddomain(d string) int {
+	//获取到每一级域名的字符串
+	ds := strings.Split(d, ".")
+	//判断是否为目标域名
+	if strings.Contains(d, "testv4-v6") {
+		//判断是否有解析进度,含有c且长度为2认为存在标识
+		if strings.Contains(ds[0], "c") && len(ds[0]) == 2 {
+			p, err := strconv.Atoi(strings.Split(ds[0], "")[1])
+			if err != nil {
+				print(err)
+				return 1
+			}
+			//长度也一致
+			if p == len(ds)-4 {
+				return 0
+			}
+		}
+	}
+	return 1
+}
+
+//输入为请求和入口解析器IP以及最后一次请求的sip
+//2个参数 r,eip
+//3个参数 r,eip,sip
+func Doamin2Chain(val ...string) string {
+	res := val[1]
+	ds := strings.Split(val[0], ".")
+	l, _ := strconv.Atoi(string(ds[0][1]))
+	print(l)
+	for i := 0; i < l; i++ {
+		print(i)
+		res = res + "-->" + Code2IP(ds[len(ds)-5-i])
+	}
+	if len(val) > 2 {
+		res = res + "-->" + val[2]
+	}
+	return res
 }

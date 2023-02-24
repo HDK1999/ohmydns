@@ -6,8 +6,8 @@ import (
 	"flag"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/jinzhu/gorm"
 	"net"
+	ohttp "ohmydns/ohmydns_http"
 	Dns "ohmydns/src/dns"
 	"ohmydns/src/util"
 	"strconv"
@@ -38,7 +38,7 @@ func parseparam() Conf {
 	// 数据库选项
 	maddr := flag.String("ml", "124.221.228.62", "mysql服务的地址，用以记录日志")
 	mport := flag.Int("mp", 3306, "mysql服务的端口")
-	mpass := flag.String("mP", "1234", "mysql服务的密码")
+	mpass := flag.String("mP", "hdk19990815", "mysql服务的密码")
 	//服务选项
 	port := flag.Int("p", 53, "DNS服务的端口")
 	ip := flag.String("b", "localhost", "DNS服务的监听地址")
@@ -47,19 +47,19 @@ func parseparam() Conf {
 	util.Mconf.Port = *mport
 	util.Mconf.Pass = *mpass
 	return Conf{IP: *ip, Port: *port}
-
 }
 
 func main() {
 	//初始化解析配置
 	conf := parseparam()
-	db := util.Initmysql()
-	defer func(db *gorm.DB) {
-		err := db.Close()
-		if err != nil {
-			panic("数据库关闭失败")
-		}
-	}(db)
+	go ohttp.HttpserveStart()
+	//db := util.Initmysql()
+	//defer func(db *gorm.DB) {
+	//	err := db.Close()
+	//	if err != nil {
+	//		panic("数据库关闭失败")
+	//	}
+	//}(db)
 	// 初始化日志工具
 	util.Initlogger("./log/main.log")
 	// 初始化实验记录缓冲区
@@ -87,10 +87,15 @@ func main() {
 		packet := gopacket.NewPacket(tmp, layers.LayerTypeDNS, gopacket.Default)
 		dnsPacket := packet.Layer(layers.LayerTypeDNS)
 		dns, _ := dnsPacket.(*layers.DNS)
-		if dns.Questions[0].Type == layers.DNSTypeAAAA || dns.Questions[0].Type == layers.DNSTypeA {
-			// 只记录A和AAAA记录请求
-			util.Dnslog(db, addr, dns)
+		//域名符合要求
+		if util.Vailddomain(string(dns.Questions[0].Name)) == 0 {
+			//if dns.Questions[0].Type == layers.DNSTypeAAAA || dns.Questions[0].Type == layers.DNSTypeA {
+			// 记录请求
+			//util.Dnslog(db, addr, dns)
+			//}
+			// 处理请求
+			go dnsserver.ServeDNS(u, clientAddr, dns)
 		}
-		go dnsserver.ServeDNS(u, clientAddr, dns)
+		//不符合要求的不做任何响应
 	}
 }

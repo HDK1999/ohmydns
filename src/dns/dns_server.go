@@ -164,8 +164,8 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 	if request.Questions[0].Type == layers.DNSTypeNS {
 		//	根据源地址进行分类处理,存在v4解析器查询v6域名的问题，会导致响应信息错误
 		//if strings.Contains(clientAddr.IP.String(), ":")
-		//  根据查询的域名进行分类处理，只需对有没有v4.进行查询即可分类
-		if strings.Contains(string(request.Questions[0].Name), "v4.") {
+		//  根据查询的域名进行分类处理，只需对有没有.v4.进行查询即可分类
+		if strings.Contains(string(request.Questions[0].Name), ".v4.") {
 			//	v4地址
 			rr = records["testns4"]
 		} else {
@@ -216,7 +216,8 @@ func (mux *DNSServeMux) ServeDNS(u *net.UDPConn, clientAddr *net.UDPAddr, reques
 		u:     u,
 	}
 	h, _ := mux.Handler(dnsdata.RType)
-	h.ServeDNS(dnsdata)
+	go h.ServeDNS(dnsdata)
+
 	return 0
 
 }
