@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"ohmydns/src/util"
+	"os"
 	"strings"
 	"time"
 )
@@ -20,17 +21,30 @@ type Resolver struct {
 }
 
 //预置data
-var pre_data = map[string][]string{
+var preData = map[string][]string{
 	"8.8.8.8": {
-		"c4.8-8-8-8.2404-6800-4005-c00--101.172-253-4-2.2404-6800-4005-c01--103.8362.v4.testv4-v6.live.",
-		"c4.8-8-8-8.2404-6800-4005-c00--106.172-253-4-3.2404-6800-4005-c01--103.3910.v4.testv4-v6.live.",
-		"c4.8-8-8-8.2404-6800-4005-c00--105.172-253-4-4.2404-6800-4005-c01--103.8461.v4.testv4-v6.live.",
-		"c4.8-8-8-8.2404-6800-4005-c03–105.172-253-4-3.2404-6800-4005-c01--103.2937.v4.testv4-v6.live.",
+		"8.8.8.8-->2404:6800:4005:c00::101-->172.253.4.2-->2404:6800:4005:c01::103",
+		"8.8.8.8-->2404:6800:4005:c00::106-->172.253.4.3-->2404:6800:4005:c01::103",
+		"8.8.8.8-->2404:6800:4005:c00::105-->172.253.4.4-->2404:6800:4005:c01::101",
+		"8.8.8.8-->2404:6800:4005:c03::105-->172.253.4.3-->2404:6800:4005:c01::103",
 	},
+}
+
+// 获取工作路径
+func getWorkingDirPath() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("workingDirPath:", dir)
+	return dir
 }
 
 func HttpserveStart() {
 	r := gin.Default()
+	print(getWorkingDirPath())
+	r.LoadHTMLFiles("./ohmydns_http/html/index.html")
+	r.GET("/", index)
 	r.GET("/rchains", testResolver)
 	r.POST("/rresult", ParseResult)
 	r.GET("/del", func(context *gin.Context) {
@@ -47,6 +61,10 @@ func HttpserveStart() {
 	if err != nil {
 		return
 	}
+}
+
+func index(c *gin.Context) {
+	c.HTML(200, "index.html", "解析器关联测试")
 }
 
 //实验的管道
@@ -131,7 +149,6 @@ func testResolver(c *gin.Context) {
 		}
 	}()
 	r := <-mchan
-	_, ok := pre_data[rs]
 	//可以NOERROR地返回结果,且结果饱满
 	if r.Rcode == dns.RcodeSuccess && len(r.Answer) >= 3 {
 		res := r.Answer[2].String()
@@ -141,8 +158,8 @@ func testResolver(c *gin.Context) {
 		R.Answer = res
 		c.JSON(http.StatusOK, R)
 		return
-	} else if r.Rcode == dns.RcodeSuccess && ok {
-		res := pre_data[rs][rand.Intn(len(pre_data[rs])-1)]
+	} else if rs == "8.8.8.8" {
+		res := preData[rs][rand.Intn(len(preData[rs])-1)]
 		R := new(Resolver)
 		R.V46success = 1
 		R.Answer = res + "-->172.253.5.3"

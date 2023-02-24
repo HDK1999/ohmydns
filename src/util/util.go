@@ -277,7 +277,6 @@ func Doamin2Chain(val ...string) string {
 	res := val[1]
 	ds := strings.Split(val[0], ".")
 	l, _ := strconv.Atoi(string(ds[0][1]))
-	print(l)
 	for i := 0; i < l-1; i++ {
 		print(i)
 		res = res + "-->" + Code2IP(ds[len(ds)-5-i])
