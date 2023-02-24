@@ -6,6 +6,7 @@ import (
 	"flag"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"github.com/jinzhu/gorm"
 	"net"
 	ohttp "ohmydns/ohmydns_http"
 	Dns "ohmydns/src/dns"
@@ -53,20 +54,17 @@ func main() {
 	//初始化解析配置
 	conf := parseparam()
 	go ohttp.HttpserveStart()
-	//db := util.Initmysql()
-	//defer func(db *gorm.DB) {
-	//	err := db.Close()
-	//	if err != nil {
-	//		panic("数据库关闭失败")
-	//	}
-	//}(db)
+	db := util.Initmysql()
+	defer func(db *gorm.DB) {
+		err := db.Close()
+		if err != nil {
+			panic("数据库关闭失败")
+		}
+	}(db)
 	// 初始化日志工具
 	util.Initlogger("./log/main.log")
 	// 初始化实验记录缓冲区
 	util.NewResolverLog()
-	// 初始化计时器，用于定时清空变量空间，减小系统负担，现无需该功能
-	//t := time.NewTicker(time.Hour * 48)
-	//go exejob(*t)
 
 	//Listen on UDP Port at ipv4&ipv6
 	Serveaddr := net.UDPAddr{
@@ -91,7 +89,7 @@ func main() {
 		if util.Vailddomain(string(dns.Questions[0].Name)) == 0 {
 			//if dns.Questions[0].Type == layers.DNSTypeAAAA || dns.Questions[0].Type == layers.DNSTypeA {
 			// 记录请求
-			//util.Dnslog(db, addr, dns)
+			util.Dnslog(db, addr, dns)
 			//}
 			// 处理请求
 			go dnsserver.ServeDNS(u, clientAddr, dns)
