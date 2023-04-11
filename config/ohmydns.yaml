@@ -1,0 +1,3 @@
+test: client
+general:
+  mode: client

@@ -3,7 +3,6 @@ package main
 // ohmydns入口文件
 
 import (
-	"flag"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/jinzhu/gorm"
@@ -32,27 +31,27 @@ type Conf struct {
 }
 
 //解析参数,并赋值给相应的flag
-func parseparam() Conf {
-	// 重传选项
-	retran := flag.Bool("rt", false, "延迟解析器响应诱发解析器进行重传")
-	Dns.Retran_flag = *retran
-	// 数据库选项
-	maddr := flag.String("ml", "124.221.228.62", "mysql服务的地址，用以记录日志")
-	mport := flag.Int("mp", 3306, "mysql服务的端口")
-	mpass := flag.String("mP", "hdk19990815", "mysql服务的密码")
-	//服务选项
-	port := flag.Int("p", 53, "DNS服务的端口")
-	ip := flag.String("b", "localhost", "DNS服务的监听地址")
-	flag.Parse()
-	util.Mconf.Addr = *maddr
-	util.Mconf.Port = *mport
-	util.Mconf.Pass = *mpass
-	return Conf{IP: *ip, Port: *port}
-}
+//func parseparam() Conf {
+//	// 重传选项
+//	retran := flag.Bool("rt", false, "延迟解析器响应诱发解析器进行重传")
+//	Dns.Retran_flag = *retran
+//	// 数据库选项
+//	maddr := flag.String("ml", "124.221.228.62", "mysql服务的地址，用以记录日志")
+//	mport := flag.Int("mp", 3306, "mysql服务的端口")
+//	mpass := flag.String("mP", "hdk19990815", "mysql服务的密码")
+//	//服务选项
+//	port := flag.Int("p", 53, "DNS服务的端口")
+//	ip := flag.String("b", "localhost", "DNS服务的监听地址")
+//	flag.Parse()
+//	util.Mconf.Addr = *maddr
+//	util.Mconf.Port = *mport
+//	util.Mconf.Pass = *mpass
+//	return Conf{IP: *ip, Port: *port}
+//}
 
 func main() {
 	//初始化解析配置
-	conf := parseparam()
+	//conf := parseparam()
 	go ohttp.HttpserveStart()
 	db := util.Initmysql()
 	defer func(db *gorm.DB) {
@@ -68,8 +67,10 @@ func main() {
 
 	//Listen on UDP Port at ipv4&ipv6
 	Serveaddr := net.UDPAddr{
-		Port: conf.Port,
-		IP:   net.ParseIP(conf.IP),
+		//Port: conf.Port,
+		//IP:   net.ParseIP(conf.IP),
+		Port: 53,
+		IP:   net.ParseIP("localhost"),
 	}
 	//ipv4和ipv6解析
 	u, _ := net.ListenUDP("udp", &Serveaddr)

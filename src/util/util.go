@@ -2,7 +2,6 @@ package util
 
 import (
 	"container/list"
-	"flag"
 	"fmt"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/gopacket/layers"
@@ -198,12 +197,11 @@ func (r ResolverLog) NumLog2Str(n string) (string, bool) {
 }
 
 // 定义在记录中可以使用的参数
-//TODO:完善
-func InitRRarg() {
-	_ = flag.Bool("i", false, "将请求的IP嵌入到域名中返回结果，仅适用于CNAME记录")
-	_ = flag.Bool("r", false, "父级域名替换，用于CNAME，例如请求的域名为b.a.com将返回b.c.live，可与-i选项叠加")
-	return
-}
+//func InitRRarg() {
+//	_ = flag.Bool("i", false, "将请求的IP嵌入到域名中返回结果，仅适用于CNAME记录")
+//	_ = flag.Bool("r", false, "父级域名替换，用于CNAME，例如请求的域名为b.a.com将返回b.c.live，可与-i选项叠加")
+//	return
+//}
 
 // 建立mysql连接
 func Initmysql() *gorm.DB {
